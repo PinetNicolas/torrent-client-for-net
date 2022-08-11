@@ -1,5 +1,4 @@
-﻿using DefensiveProgrammingFramework;
-using TorrentClient.Extensions;
+﻿using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
 using TorrentClient.TrackerProtocol.Udp.Messages.Messages;
 
@@ -19,8 +18,6 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// <param name="transactionId">The transaction unique identifier.</param>
         public TrackerMessage(TrackingAction action, int transactionId)
         {
-            transactionId.MustBeGreaterThanOrEqualTo(0);
-
             this.Action = action;
             this.TransactionId = transactionId;
         }
@@ -63,78 +60,56 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
         /// <param name="messageType">Type of the message.</param>
-        /// <param name="message">The decoded message.</param>
         /// <returns>
-        /// True if message was successfully decoded; false otherwise.
+        /// The message decode or null if problem
         /// </returns>
-        public static bool TryDecode(byte[] buffer, int offset, MessageType messageType, out TrackerMessage message)
+        public static TrackerMessage TryDecode(byte[] buffer, int offset, MessageType messageType)
         {
             int action;
 
-            message = null;
+            TrackerMessage message = null;
 
-            if (buffer.IsNotNullOrEmpty())
+            if (buffer!=null && buffer.Length > 0)
             {
-                action = messageType == MessageType.Request ? Message.ReadInt(buffer, ref offset) : Message.ReadInt(buffer, ref offset);
+                action = messageType == MessageType.Request ? Message.ReadInt(buffer, offset) : Message.ReadInt(buffer, offset);
                 offset = 0;
 
                 if (action == (int)TrackingAction.Connect)
                 {
                     if (messageType == MessageType.Request)
                     {
-                        ConnectMessage message2;
-                        ConnectMessage.TryDecode(buffer, offset, out message2);
-
-                        message = message2;
+                        message = ConnectMessage.TryDecode(buffer, offset);
                     }
                     else
                     {
-                        ConnectResponseMessage message2;
-                        ConnectResponseMessage.TryDecode(buffer, offset, out message2);
-
-                        message = message2;
+                        message = ConnectResponseMessage.TryDecode(buffer, offset);
                     }
                 }
                 else if (action == (int)TrackingAction.Announce)
                 {
                     if (messageType == MessageType.Request)
                     {
-                        AnnounceMessage message2;
-                        AnnounceMessage.TryDecode(buffer, offset, out message2);
-
-                        message = message2;
+                        message = AnnounceMessage.TryDecode(buffer, offset);
                     }
                     else
                     {
-                        AnnounceResponseMessage message2;
-                        AnnounceResponseMessage.TryDecode(buffer, offset, out message2);
-
-                        message = message2;
+                        message = AnnounceResponseMessage.TryDecode(buffer, offset);
                     }
                 }
                 else if (action == (int)TrackingAction.Scrape)
                 {
                     if (messageType == MessageType.Request)
                     {
-                        ScrapeMessage message2;
-                        ScrapeMessage.TryDecode(buffer, offset, out message2);
-
-                        message = message2;
+                        message = ScrapeMessage.TryDecode(buffer, offset);
                     }
                     else
                     {
-                        ScrapeResponseMessage message2;
-                        ScrapeResponseMessage.TryDecode(buffer, offset, out message2);
-
-                        message = message2;
+                        message = ScrapeResponseMessage.TryDecode(buffer, offset);
                     }
                 }
                 else if (action == (int)TrackingAction.Error)
                 {
-                    ErrorMessage message2;
-                    ErrorMessage.TryDecode(buffer, offset, out message2);
-
-                    message = message2;
+                    message = ErrorMessage.TryDecode(buffer, offset);
                 }
                 else
                 {
@@ -142,7 +117,7 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         #endregion Public Methods

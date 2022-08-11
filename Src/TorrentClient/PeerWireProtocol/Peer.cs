@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Reflection.PortableExecutable;
 using System.Threading;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol;
 using TorrentClient.PeerWireProtocol.Messages;
@@ -126,10 +126,8 @@ namespace TorrentClient
         /// <param name="peerId">The peer identifier.</param>
         public Peer(PeerCommunicator communicator, PieceManager pieceManager, string localPeerId, string peerId = null)
         {
-            communicator.CannotBeNull();
-            pieceManager.CannotBeNull();
-            localPeerId.CannotBeNullOrEmpty();
-
+            if (pieceManager == null) throw new ArgumentNullException("pieceManager");
+            if (communicator == null) throw new ArgumentNullException("communicator");
             this.PeerId = peerId;
 
             this.localPeerId = localPeerId;
@@ -567,8 +565,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void EnqueueDownloadMessage(PeerMessage message)
         {
-            message.CannotBeNull();
-
             lock (this.downloadMessageQueueLocker)
             {
                 this.downloadMessageQueue.Enqueue(message);
@@ -581,8 +577,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void EnqueueSendMessage(PeerMessage message)
         {
-            message.CannotBeNull();
-
             lock (this.sendMessageQueueLocker)
             {
                 this.sendMessageQueue.Enqueue(message);
@@ -595,8 +589,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void EnqueueUploadMessage(PeerMessage message)
         {
-            message.CannotBeNull();
-
             lock (this.uploadMessageQueueLocker)
             {
                 this.uploadMessageQueue.Enqueue(message);
@@ -651,9 +643,6 @@ namespace TorrentClient
         /// <param name="e">The event arguments.</param>
         private void OnCommunicationErrorOccurred(object sender, PeerCommunicationErrorEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.CommunicationErrorOccurred != null)
             {
                 this.CommunicationErrorOccurred(sender, e);
@@ -744,8 +733,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void ProcessRecievedMessage(CancelMessage message)
         {
-            message.CannotBeNull();
-
             if (this.HandshakeState == HandshakeState.SendAndReceived)
             {
                 if (message.PieceIndex >= 0 &&
@@ -774,8 +761,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void ProcessRecievedMessage(PieceMessage message)
         {
-            message.CannotBeNull();
-
             if (this.HandshakeState == HandshakeState.SendAndReceived)
             {
                 if (message.PieceIndex >= 0 &&
@@ -804,8 +789,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void ProcessRecievedMessage(RequestMessage message)
         {
-            message.CannotBeNull();
-
             if (this.HandshakeState == HandshakeState.SendAndReceived)
             {
                 if (message.PieceIndex >= 0 &&
@@ -834,8 +817,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void ProcessRecievedMessage(BitFieldMessage message)
         {
-            message.CannotBeNull();
-
             if (this.HandshakeState == HandshakeState.SendAndReceived)
             {
                 if (message.BitField.Length >= this.pieceManager.BlockCount)
@@ -865,8 +846,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void ProcessRecievedMessage(ChokeMessage message)
         {
-            message.CannotBeNull();
-
             if (this.HandshakeState == HandshakeState.SendAndReceived)
             {
                 this.EnqueueDownloadMessage(message);
@@ -883,8 +862,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void ProcessRecievedMessage(UnchokeMessage message)
         {
-            message.CannotBeNull();
-
             if (this.HandshakeState == HandshakeState.SendAndReceived)
             {
                 this.EnqueueDownloadMessage(message);
@@ -901,8 +878,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void ProcessRecievedMessage(InterestedMessage message)
         {
-            message.CannotBeNull();
-
             if (this.HandshakeState == HandshakeState.SendAndReceived)
             {
                 this.EnqueueDownloadMessage(message);
@@ -919,8 +894,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void ProcessRecievedMessage(UninterestedMessage message)
         {
-            message.CannotBeNull();
-
             if (this.HandshakeState == HandshakeState.SendAndReceived)
             {
                 this.EnqueueUploadMessage(message);
@@ -937,8 +910,6 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void ProcessRecievedMessage(HaveMessage message)
         {
-            message.CannotBeNull();
-
             if (this.HandshakeState == HandshakeState.SendAndReceived)
             {
                 if (message.PieceIndex >= 0 &&
@@ -966,14 +937,12 @@ namespace TorrentClient
         /// <param name="message">The message.</param>
         private void ProcessRecievedMessage(HandshakeMessage message)
         {
-            message.CannotBeNull();
-
             if (this.HandshakeState == HandshakeState.None ||
                 this.HandshakeState == HandshakeState.SentButNotReceived)
             {
                 if (message.InfoHash == this.pieceManager.TorrentInfoHash &&
                     message.ProtocolString == HandshakeMessage.ProtocolName &&
-                    message.PeerId.IsNotNullOrEmpty() &&
+                    !string.IsNullOrEmpty(message.PeerId) &&
                     message.PeerId != this.localPeerId)
                 {
                     if (this.HandshakeState == HandshakeState.None)
@@ -1114,9 +1083,6 @@ namespace TorrentClient
         /// <param name="uploaded">The uploaded byte count.</param>
         private void UpdateTrafficParameters(long downloaded, long uploaded)
         {
-            downloaded.MustBeGreaterThanOrEqualTo(0);
-            uploaded.MustBeGreaterThanOrEqualTo(0);
-
             lock (this.locker)
             {
                 this.previouslyDownloaded += downloaded;

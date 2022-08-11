@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Globalization;
-using DefensiveProgrammingFramework;
 using TorrentClient.Exceptions;
 using TorrentClient.Extensions;
 
@@ -116,8 +115,7 @@ namespace TorrentClient.BEncoding
         /// </returns>
         public int CompareTo(BEncodedNumber other)
         {
-            other.CannotBeNull();
-
+            if(other == null) throw new ArgumentNullException("other");
             return this.number.CompareTo(other.number);
         }
 
@@ -153,9 +151,9 @@ namespace TorrentClient.BEncoding
         /// <returns>The number of bytes encoded.</returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            
             long number = this.number;
             int written = offset;
             long reversed;
@@ -281,8 +279,7 @@ namespace TorrentClient.BEncoding
         /// <param name="reader">RawReader containing a BEncoded Number</param>
         internal override void DecodeInternal(RawReader reader)
         {
-            reader.CannotBeNull();
-
+            if (reader == null) throw new ArgumentNullException("reader");
             int sign = 1;
             int letter;
 

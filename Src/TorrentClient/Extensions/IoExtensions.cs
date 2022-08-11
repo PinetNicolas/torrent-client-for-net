@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Web;
-using DefensiveProgrammingFramework;
 
 namespace TorrentClient.Extensions
 {
@@ -22,8 +21,6 @@ namespace TorrentClient.Extensions
         /// <param name="deleteOnlyDirectoryContents">if set to <c>true</c> delete only directory contents.</param>
         public static void DeleteDirectoryRecursively(this string directoryPath, bool deleteOnlyDirectoryContents = false)
         {
-            directoryPath.MustBeValidDirectoryPath();
-
             if (Directory.Exists(directoryPath))
             {
                 // delete files

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using DefensiveProgrammingFramework;
 using TorrentClient.Exceptions;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol;
@@ -56,12 +55,7 @@ namespace TorrentClient
         /// <param name="files">The files.</param>
         public PersistenceManager(string directoryPath, long torrentLength, long pieceLength, IEnumerable<string> pieceHashes, IEnumerable<TorrentFileInfo> files)
         {
-            directoryPath.CannotBeNullOrEmpty();
-            directoryPath.MustBeValidDirectoryPath();
-            files.CannotBeNullOrEmpty();
-            pieceLength.MustBeGreaterThan(0);
-            pieceHashes.CannotBeNullOrEmpty();
-
+            if (files == null) throw new ArgumentNullException("files");
             Debug.WriteLine($"creating persistence manager for {Path.GetFullPath(directoryPath)}");
 
             this.DirectoryPath = directoryPath;
@@ -72,7 +66,7 @@ namespace TorrentClient
             // initialize file handlers
             this.files = new Dictionary<TorrentFileInfo, FileStream>();
 
-            foreach (var file in files)
+            foreach (TorrentFileInfo file in files)
             {
                 if (file.Download)
                 {
@@ -156,8 +150,6 @@ namespace TorrentClient
         /// </returns>
         public byte[] Get(int pieceIndex)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-
             long pieceStart;
             long pieceEnd;
             long torrentStartOffset = 0;
@@ -254,11 +246,6 @@ namespace TorrentClient
         /// <param name="pieceData">The piece data.</param>
         public void Put(IEnumerable<TorrentFileInfo> files, long pieceLength, long pieceIndex, byte[] pieceData)
         {
-            files.CannotBeNullOrEmpty();
-            pieceLength.MustBeGreaterThan(0);
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            pieceData.CannotBeNullOrEmpty();
-
             long pieceStart;
             long pieceEnd;
             long torrentStartOffset = 0;
@@ -266,13 +253,15 @@ namespace TorrentClient
             long fileOffset;
             int pieceOffset = 0;
             int length = 0;
-
+            
+            if (files == null) throw new ArgumentNullException("files");
+            if (pieceData == null) throw new ArgumentNullException("pieceData");
             this.CheckIfObjectIsDisposed();
 
             lock (this.locker)
             {
                 // verify length of the data written
-                foreach (var file in files)
+                foreach (TorrentFileInfo file in files)
                 {
                     torrentEndOffset = torrentStartOffset + file.Length;
 
@@ -445,10 +434,6 @@ namespace TorrentClient
         /// <returns>True if file was created; false otherwise.</returns>
         private bool CreateFile(string filePath, long fileLength)
         {
-            filePath.CannotBeNullOrEmpty();
-            filePath.MustBeValidFilePath();
-            fileLength.MustBeGreaterThan(0);
-
             this.CheckIfObjectIsDisposed();
 
             if (!Directory.Exists(Path.GetDirectoryName(filePath)))
@@ -486,10 +471,6 @@ namespace TorrentClient
         /// <returns>The piece status.</returns>
         private PieceStatus GetStatus(bool ignore, bool download, string pieceHash, string calculatedPieceHash)
         {
-            pieceHash.CannotBeNullOrEmpty();
-            calculatedPieceHash.CannotBeNullOrEmpty();
-            pieceHash.Length.MustBeEqualTo(calculatedPieceHash.Length);
-
             if (download &&
                 !ignore)
             {
@@ -530,12 +511,11 @@ namespace TorrentClient
         /// <exception cref="System.Exception">Incorrect file length.</exception>
         private void Read(FileStream stream, long offset, int length, byte[] buffer, int bufferOffset)
         {
-            stream.CannotBeNull();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            length.MustBeGreaterThan(0);
-            buffer.CannotBeNullOrEmpty();
-            bufferOffset.MustBeGreaterThanOrEqualTo(0);
-            bufferOffset.MustBeLessThanOrEqualTo(buffer.Length - length);
+
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if(bufferOffset < 0 || bufferOffset > buffer.Length - length)
+                throw new ArgumentOutOfRangeException("bufferOffset");
 
             if (stream.Length >= offset + length)
             {
@@ -559,13 +539,12 @@ namespace TorrentClient
         /// <exception cref="System.Exception">Incorrect file length.</exception>
         private void Write(FileStream stream, long offset, int length, byte[] buffer, int bufferOffset = 0)
         {
-            stream.CannotBeNull();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            buffer.CannotBeNullOrEmpty();
-            length.MustBeGreaterThan(0);
-            length.MustBeLessThanOrEqualTo(buffer.Length);
-            bufferOffset.MustBeGreaterThanOrEqualTo(0);
-            bufferOffset.MustBeLessThanOrEqualTo((int)(buffer.Length - length));
+
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+
+            if (bufferOffset < 0 || bufferOffset > buffer.Length - length)
+                throw new ArgumentOutOfRangeException("bufferOffset");
 
             if (stream.Length >= offset + length)
             {

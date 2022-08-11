@@ -5,7 +5,6 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using DefensiveProgrammingFramework;
 
 namespace TorrentClient.Extensions
 {
@@ -37,6 +36,7 @@ namespace TorrentClient.Extensions
         /// </returns>
         public static byte[] CalculateSha1Hash(this byte[] data)
         {
+            if (data == null)  throw new ArgumentNullException("data");
             return CalculateHashSha(data, 0, data.Length, 128);
         }
 
@@ -74,11 +74,6 @@ namespace TorrentClient.Extensions
         /// </returns>
         private static byte[] CalculateHashSha(this byte[] data, int offset, int length, int hashSize)
         {
-            data.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            length.MustBeGreaterThanOrEqualTo(0);
-            hashSize.MustBeOneOf(128, 256, 384, 512);
-
             byte[] hashRaw = null;
 
             if (data != null)

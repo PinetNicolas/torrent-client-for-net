@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 using TorrentClient.TrackerProtocol.Udp.Messages;
 
@@ -117,9 +116,6 @@ namespace TorrentClient.TrackerProtocol.Udp
         /// </returns>
         private TrackerMessage ExecuteUdpRequest(Uri uri, TrackerMessage message)
         {
-            uri.CannotBeNull();
-            message.CannotBeNull();
-
             byte[] data = null;
             IAsyncResult asyncResult;
             IPEndPoint any = new IPEndPoint(IPAddress.Any, this.ListeningPort);
@@ -152,7 +148,8 @@ namespace TorrentClient.TrackerProtocol.Udp
                 return null;
             }
 
-            if (TrackerMessage.TryDecode(data, 0, MessageType.Response, out message))
+            message = TrackerMessage.TryDecode(data, 0, MessageType.Response);
+            if (message != null)
             {
                 if (message is ErrorMessage)
                 {

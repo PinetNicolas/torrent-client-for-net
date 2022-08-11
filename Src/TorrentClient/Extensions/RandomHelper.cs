@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using DefensiveProgrammingFramework;
 
 namespace TorrentClient.Extensions
 {
@@ -57,9 +56,6 @@ namespace TorrentClient.Extensions
             }
             else
             {
-                size.MustBeGreaterThan(0);
-                characters.CannotBeNullOrEmpty();
-
                 StringBuilder builder = new StringBuilder();
 
                 for (int i = 0; i < size; i++)

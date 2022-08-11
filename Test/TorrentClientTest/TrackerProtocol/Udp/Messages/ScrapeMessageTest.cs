@@ -19,10 +19,10 @@ namespace TorrentClient.Test.TrackerProtocol.Udp.Messages
         [TestMethod]
         public void ScrapeMessage_TryDecode()
         {
-            ScrapeMessage message;
             byte[] data = "0000041727101980 00000002 00003300 551914F642D7E0B5781FB9A9BCF6AC7DE4BDE7ED F5E7C4D5A7BD299CD36CB7547F1C0B8145AE0C9D".Replace(" ", string.Empty).ToByteArray();
 
-            if (ScrapeMessage.TryDecode(data, 0, out message))
+            ScrapeMessage message = ScrapeMessage.TryDecode(data, 0);
+            if (message != null)
             {
                 Assert.AreEqual(56, message.Length);
                 Assert.AreEqual(2, (int)message.Action);

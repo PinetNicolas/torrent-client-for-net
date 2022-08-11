@@ -18,18 +18,17 @@ namespace TorrentClient.Test.PeerWireProtocol.Messages
         [TestMethod]
         public void TestTryDecodeBitfieldMessage()
         {
-            BitFieldMessage message;
             int offset = 0;
             byte[] data = "0000000d05fffffffffffffffffffffff8".ToByteArray();
-            bool isIncomplete;
 
-            if (BitFieldMessage.TryDecode(data, ref offset, data.Length, out message, out isIncomplete))
+            BitFieldMessage message = BitFieldMessage.TryDecode(data, offset, data.Length);
+            if (message != null)
             {
                 Assert.AreEqual(17, message.Length);
                 Assert.AreEqual(96, message.BitField.Length);
                 Assert.AreEqual(true, message.BitField[0]);
-                Assert.AreEqual(false, isIncomplete);
-                Assert.AreEqual(data.Length, offset);
+                Assert.AreEqual(false, message.IsIncomplete);
+                Assert.AreEqual(data.Length, message.Length);
 
                 for (int i = 0; i < message.BitField.Length; i++)
                 {

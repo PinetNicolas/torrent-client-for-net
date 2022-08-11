@@ -1,5 +1,5 @@
-﻿using System.IO;
-using DefensiveProgrammingFramework;
+﻿using System;
+using System.IO;
 using TorrentClient.Exceptions;
 using TorrentClient.Extensions;
 
@@ -20,8 +20,7 @@ namespace TorrentClient.BEncoding
         /// <returns>The cloned BEncoded value.</returns>
         public static T Clone<T>(T value) where T : BEncodedValue
         {
-            value.CannotBeNull();
-
+            if(value == null) throw new ArgumentNullException("value");
             return (T)BEncodedValue.Decode(value.Encode());
         }
 
@@ -32,7 +31,7 @@ namespace TorrentClient.BEncoding
         /// <returns>The decoded BEncoded value.</returns>
         public static BEncodedValue Decode(byte[] data)
         {
-            data.CannotBeNull();
+            if(data==null) throw new ArgumentNullException("data");
 
             BEncodedValue value = null;
 
@@ -56,10 +55,6 @@ namespace TorrentClient.BEncoding
         /// <returns>BEncodedValue containing the data that was in the byte[]</returns>
         public static BEncodedValue Decode(byte[] buffer, int offset, int length)
         {
-            buffer.CannotBeNull();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            length.MustBeGreaterThanOrEqualTo(0);
-
             return Decode(buffer, offset, length, true);
         }
 
@@ -73,11 +68,6 @@ namespace TorrentClient.BEncoding
         /// <returns>The decoded BEncoded value.</returns>
         public static BEncodedValue Decode(byte[] buffer, int offset, int length, bool strictDecoding)
         {
-            buffer.CannotBeNull();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThanOrEqualTo(buffer.Length - length);
-            length.MustBeGreaterThanOrEqualTo(0);
-
             BEncodedValue value = null;
 
             using (RawReader reader = new RawReader(new MemoryStream(buffer, offset, length), strictDecoding))
@@ -95,9 +85,10 @@ namespace TorrentClient.BEncoding
         /// <returns>The BEncoded value.</returns>
         public static BEncodedValue Decode(Stream stream)
         {
-            stream.CannotBeNull();
-
-            return Decode(new RawReader(stream));
+            using (RawReader reader = new RawReader(stream))
+            {
+                return Decode(reader);
+            }
         }
 
         /// <summary>
@@ -107,7 +98,7 @@ namespace TorrentClient.BEncoding
         /// <returns>BEncodedValue containing the data that was in the stream</returns>
         public static BEncodedValue Decode(RawReader reader)
         {
-            reader.CannotBeNull();
+            if (reader == null) throw new ArgumentNullException("reader");
 
             BEncodedValue data;
             int peekByte = reader.PeekByte();
@@ -167,8 +158,6 @@ namespace TorrentClient.BEncoding
         /// <returns>The BEncoded value.</returns>
         public static T Decode<T>(byte[] data) where T : BEncodedValue
         {
-            data.CannotBeNull();
-
             return (T)BEncodedValue.Decode(data);
         }
 
@@ -182,10 +171,6 @@ namespace TorrentClient.BEncoding
         /// <returns>The BEncoded value.</returns>
         public static T Decode<T>(byte[] buffer, int offset, int length) where T : BEncodedValue
         {
-            buffer.CannotBeNull();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            length.MustBeGreaterThanOrEqualTo(0);
-
             return BEncodedValue.Decode<T>(buffer, offset, length, true);
         }
 
@@ -202,10 +187,6 @@ namespace TorrentClient.BEncoding
         /// </returns>
         public static T Decode<T>(byte[] buffer, int offset, int length, bool strictDecoding) where T : BEncodedValue
         {
-            buffer.CannotBeNull();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            length.MustBeGreaterThanOrEqualTo(0);
-
             return (T)BEncodedValue.Decode(buffer, offset, length, strictDecoding);
         }
 
@@ -219,8 +200,6 @@ namespace TorrentClient.BEncoding
         /// </returns>
         public static T Decode<T>(Stream stream) where T : BEncodedValue
         {
-            stream.CannotBeNull();
-
             return (T)BEncodedValue.Decode(stream);
         }
 
@@ -234,8 +213,6 @@ namespace TorrentClient.BEncoding
         /// </returns>
         public static T Decode<T>(RawReader reader) where T : BEncodedValue
         {
-            reader.CannotBeNull();
-
             return (T)BEncodedValue.Decode(reader);
         }
 
@@ -281,8 +258,6 @@ namespace TorrentClient.BEncoding
         /// <returns>The b-encoded value.</returns>
         internal static BEncodedValue Decode(byte[] buffer, bool strictDecoding)
         {
-            buffer.CannotBeNull();
-
             return Decode(buffer, 0, buffer.Length, strictDecoding);
         }
 

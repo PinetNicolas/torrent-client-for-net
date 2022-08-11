@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol;
 using TorrentClient.TrackerProtocol;
@@ -71,17 +70,11 @@ namespace TorrentClient
         /// <param name="persistenceManager">The persistence manager.</param>
         public TransferManager(int listeningPort, TorrentInfo torrentInfo, ThrottlingManager throttlingManager, PersistenceManager persistenceManager)
         {
-            listeningPort.MustBeGreaterThanOrEqualTo(IPEndPoint.MinPort);
-            listeningPort.MustBeLessThanOrEqualTo(IPEndPoint.MaxPort);
-            torrentInfo.CannotBeNull();
-            throttlingManager.CannotBeNull();
-            persistenceManager.CannotBeNull();
-
             Tracker tracker = null;
 
             this.PeerId = "-AB1100-" + "0123456789ABCDEF".Random(24);
 
-            Debug.WriteLine($"creating torrent manager for torrent {torrentInfo.InfoHash}");
+            Debug.WriteLine($"creating torrent manager for torrent {torrentInfo?.InfoHash}");
             Debug.WriteLine($"local peer id {this.PeerId}");
 
             this.TorrentInfo = torrentInfo;
@@ -362,12 +355,10 @@ namespace TorrentClient
         /// </summary>
         /// <param name="tcp">The TCP.</param>
         /// <param name="peerId">The peer identifier.</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Supprimer les objets avant la mise hors de portée", Justification = "<En attente>")]
         public void AddLeecher(TcpClient tcp, string peerId)
         {
-            tcp.CannotBeNull();
-            peerId.CannotBeNull();
-
-            Peer peer;
+            if (tcp == null) throw new ArgumentNullException("tcp");
             int maxLeechers = 10;
 
             lock (((IDictionary)this.peers).SyncRoot)
@@ -385,7 +376,7 @@ namespace TorrentClient
                         tcp.Client.SendTimeout = tcp.Client.ReceiveTimeout;
 
                         // add new peer
-                        peer = new Peer(new PeerCommunicator(this.throttlingManager, tcp), this.pieceManager, this.PeerId, peerId);
+                        Peer peer = new Peer(new PeerCommunicator(this.throttlingManager, tcp), this.pieceManager, this.PeerId, peerId);
                         peer.CommunicationErrorOccurred += this.Peer_CommunicationErrorOccurred;
 
                         this.peers.Add(tcp.Client.RemoteEndPoint as IPEndPoint, peer);
@@ -428,6 +419,10 @@ namespace TorrentClient
                 {
                     if (this.peers != null)
                     {
+                        foreach (Peer p in peers.Values)
+                        {
+                            p.Dispose();
+                        }
                         this.peers.Clear();
                         this.peers = null;
                     }
@@ -524,8 +519,6 @@ namespace TorrentClient
         /// <param name="endpoint">The endpoint.</param>
         private void AddSeeder(IPEndPoint endpoint)
         {
-            endpoint.CannotBeNull();
-
             TcpClient tcp;
 
             lock (((IDictionary)this.peers).SyncRoot)
@@ -561,9 +554,6 @@ namespace TorrentClient
         /// <param name="e">The event arguments.</param>
         private void OnTorrentHashing(object sender, EventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.TorrentHashing != null)
             {
                 this.TorrentHashing(sender, e);
@@ -577,9 +567,6 @@ namespace TorrentClient
         /// <param name="e">The event arguments.</param>
         private void OnTorrentLeeching(object sender, EventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.TorrentLeeching != null)
             {
                 this.TorrentLeeching(sender, e);
@@ -593,9 +580,6 @@ namespace TorrentClient
         /// <param name="e">The event arguments.</param>
         private void OnTorrentSeeding(object sender, EventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.TorrentSeeding != null)
             {
                 this.TorrentSeeding(sender, e);
@@ -609,9 +593,6 @@ namespace TorrentClient
         /// <param name="e">The event arguments.</param>
         private void OnTorrentStarted(object sender, EventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.TorrentStarted != null)
             {
                 this.TorrentStarted(sender, e);
@@ -625,9 +606,6 @@ namespace TorrentClient
         /// <param name="e">The event arguments.</param>
         private void OnTorrentStopped(object sender, EventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.TorrentStopped != null)
             {
                 this.TorrentStopped(sender, e);
@@ -675,11 +653,11 @@ namespace TorrentClient
         /// Peers the connected.
         /// </summary>
         /// <param name="ar">The async result.</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Supprimer les objets avant la mise hors de portée", Justification = "<En attente>")]
         private void PeerConnected(IAsyncResult ar)
         {
             AsyncConnectData data;
             TcpClient tcp;
-            Peer peer;
             IPEndPoint endpoint;
 
             data = ar.AsyncState as AsyncConnectData;
@@ -703,7 +681,7 @@ namespace TorrentClient
                         Debug.WriteLine($"adding seeding peer {endpoint} to torrent {this.TorrentInfo.InfoHash}");
 
                         // add new peer
-                        peer = new Peer(new PeerCommunicator(this.throttlingManager, tcp), this.pieceManager, this.PeerId);
+                        Peer peer = new Peer(new PeerCommunicator(this.throttlingManager, tcp), this.pieceManager, this.PeerId);
                         peer.CommunicationErrorOccurred += this.Peer_CommunicationErrorOccurred;
 
                         this.peers.Add(endpoint, peer);

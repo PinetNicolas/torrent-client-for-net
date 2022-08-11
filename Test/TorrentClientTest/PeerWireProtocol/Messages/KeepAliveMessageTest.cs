@@ -18,11 +18,11 @@ namespace TorrentClient.Test.PeerWireProtocol.Messages
         [TestMethod]
         public void KeepAliveMessage_TryDecode()
         {
-            KeepAliveMessage message;
             int offset = 0;
             byte[] data = "00000000".ToByteArray();
 
-            if (KeepAliveMessage.TryDecode(data, ref offset, out message))
+            KeepAliveMessage message = KeepAliveMessage.TryDecode(data, offset);
+            if (message != null)
             {
                 Assert.AreEqual(4, message.Length);
                 CollectionAssert.AreEqual(data, message.Encode());

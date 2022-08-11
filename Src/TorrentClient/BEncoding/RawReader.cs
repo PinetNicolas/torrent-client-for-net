@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.BEncoding
@@ -52,8 +51,6 @@ namespace TorrentClient.BEncoding
         /// <param name="strictDecoding">if set to <c>true</c> [strict decoding].</param>
         public RawReader(Stream input, bool strictDecoding)
         {
-            input.CannotBeNull();
-
             this.input = input;
             this.peeked = new byte[1];
             this.strictDecoding = strictDecoding;
@@ -188,10 +185,7 @@ namespace TorrentClient.BEncoding
         /// </returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
-            buffer.CannotBeNull();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            count.MustBeGreaterThanOrEqualTo(0);
-
+            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
             int read = 0;
 
             if (this.hasPeek &&
@@ -239,8 +233,6 @@ namespace TorrentClient.BEncoding
         /// </returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
-            offset.MustBeGreaterThanOrEqualTo(0);
-
             long val;
 
             if (this.hasPeek &&
@@ -264,8 +256,6 @@ namespace TorrentClient.BEncoding
         /// <param name="value">The desired length of the current stream in bytes.</param>
         public override void SetLength(long value)
         {
-            value.MustBeGreaterThanOrEqualTo(0);
-
             throw new NotSupportedException();
         }
 
@@ -277,10 +267,9 @@ namespace TorrentClient.BEncoding
         /// <param name="count">The number of bytes to be written to the current stream.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            count.MustBeLessThanOrEqualTo(0);
-
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            
             throw new NotSupportedException();
         }
 

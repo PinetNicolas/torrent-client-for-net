@@ -18,10 +18,10 @@ namespace TorrentClient.Test.TrackerProtocol.Udp.Messages
         [TestMethod]
         public void ConnectResponseMessage_TryDecode()
         {
-            ConnectResponseMessage message;
             byte[] data = "00000000000033000000041727101980".ToByteArray();
 
-            if (ConnectResponseMessage.TryDecode(data, 0, out message))
+            ConnectResponseMessage message = ConnectResponseMessage.TryDecode(data, 0);
+                if(message != null)
             {
                 Assert.AreEqual(16, message.Length);
                 Assert.AreEqual(0, (int)message.Action);

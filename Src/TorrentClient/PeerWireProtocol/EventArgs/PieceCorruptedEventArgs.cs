@@ -1,5 +1,4 @@
 ﻿using System;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol
@@ -17,8 +16,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="pieceIndex">Index of the piece.</param>
         public PieceCorruptedEventArgs(int pieceIndex)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-
             this.PieceIndex = pieceIndex;
         }
 

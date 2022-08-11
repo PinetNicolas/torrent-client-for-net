@@ -1,5 +1,4 @@
 ﻿using System;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol.Messages
@@ -79,25 +78,24 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// <param name="buffer">The buffer.</param>
         /// <param name="offsetFrom">The offset.</param>
         /// <param name="offsetTo">The offset to.</param>
-        /// <param name="message">The message.</param>
-        /// <param name="isIncomplete">if set to <c>true</c> the message is incomplete.</param>
         /// <returns>
         /// True if decoding was successful; false otherwise.
         /// </returns>
-        public static bool TryDecode(byte[] buffer, ref int offsetFrom, int offsetTo, out UnchokeMessage message, out bool isIncomplete)
+        public static UnchokeMessage TryDecode(byte[] buffer, int offsetFrom, int offsetTo)
         {
             int messageLength;
             byte messageId;
 
-            message = null;
-            isIncomplete = false;
+            UnchokeMessage message = new UnchokeMessage();
 
             if (buffer != null &&
                 buffer.Length >= offsetFrom + MessageLengthLength + MessageIdLength + PayloadLength &&
                 offsetFrom >= 0)
             {
-                messageLength = Message.ReadInt(buffer, ref offsetFrom);
-                messageId = Message.ReadByte(buffer, ref offsetFrom);
+                messageLength = Message.ReadInt(buffer, offsetFrom);
+                offsetFrom += Message.IntLength;
+                messageId = Message.ReadByte(buffer, offsetFrom);
+                offsetFrom++;
 
                 if (messageLength == MessageLength &&
                     messageId == MessageId)
@@ -108,12 +106,12 @@ namespace TorrentClient.PeerWireProtocol.Messages
                     }
                     else
                     {
-                        isIncomplete = true;
+                        message.IsIncomplete = true;
                     }
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -126,14 +124,15 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// </returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, MessageLength);
-            Message.Write(buffer, ref written, MessageId);
+            written += Message.Write(buffer, written, MessageLength);
+            written += Message.Write(buffer, written, MessageId);
 
             return this.CheckWritten(written - offset);
         }

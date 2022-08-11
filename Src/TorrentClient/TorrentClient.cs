@@ -7,7 +7,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using DefensiveProgrammingFramework;
 using TorrentClient.Exceptions;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
@@ -57,11 +56,6 @@ namespace TorrentClient
         /// <param name="baseDirectory">The base directory, where all torrents are persisted.</param>
         public TorrentClient(int listeningPort, string baseDirectory)
         {
-            baseDirectory.CannotBeNullOrEmpty();
-            baseDirectory.MustBeValidDirectoryPath();
-            listeningPort.MustBeGreaterThanOrEqualTo(IPEndPoint.MinPort);
-            listeningPort.MustBeLessThanOrEqualTo(IPEndPoint.MaxPort);
-
             Debug.WriteLine("creating torrent client");
             Debug.WriteLine($"listening port: {listeningPort}");
             Debug.WriteLine($"base directory: {Path.GetFullPath(baseDirectory)}");
@@ -311,8 +305,6 @@ namespace TorrentClient
         /// </returns>
         public TorrentProgressInfo GetProgressInfo(string torrentInfoHash)
         {
-            torrentInfoHash.CannotBeNull();
-
             TransferManager transferManager;
 
             if (this.transfers.TryGetValue(torrentInfoHash, out transferManager))
@@ -395,8 +387,7 @@ namespace TorrentClient
         /// <param name="torrentInfo">The torrent information.</param>
         public void Start(TorrentInfo torrentInfo)
         {
-            torrentInfo.CannotBeNull();
-
+            if (torrentInfo == null) throw new ArgumentNullException("torrentInfo");
             TransferManager transfer;
 
             Debug.WriteLine($"starting torrent {torrentInfo.InfoHash}");
@@ -473,8 +464,6 @@ namespace TorrentClient
         /// <param name="torrentInfoHash">The torrent information hash.</param>
         public void Stop(string torrentInfoHash)
         {
-            torrentInfoHash.CannotBeNullOrEmpty();
-
             TransferManager transfer;
 
             Debug.WriteLine($"stopping torrent {torrentInfoHash}");
@@ -542,7 +531,7 @@ namespace TorrentClient
 
                     if (bytesRead > 0)
                     {
-                        foreach (var message in PeerMessage.Decode(buffer, ref offset, bytesRead))
+                        foreach (var message in PeerMessage.Decode(buffer, offset, bytesRead))
                         {
                             if (message is HandshakeMessage)
                             {
@@ -580,9 +569,6 @@ namespace TorrentClient
         /// <param name="e">The event arguments.</param>
         private void OnTorrentHashing(object sender, TorrentHashingEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.TorrentHashing != null)
             {
                 this.TorrentHashing(sender, e);
@@ -596,9 +582,6 @@ namespace TorrentClient
         /// <param name="e">The event arguments.</param>
         private void OnTorrentLeeching(object sender, TorrentLeechingEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.TorrentLeeching != null)
             {
                 this.TorrentLeeching(sender, e);
@@ -612,9 +595,6 @@ namespace TorrentClient
         /// <param name="e">The event arguments.</param>
         private void OnTorrentSeeding(object sender, TorrentSeedingEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.TorrentSeeding != null)
             {
                 this.TorrentSeeding(sender, e);
@@ -628,9 +608,6 @@ namespace TorrentClient
         /// <param name="e">The event arguments.</param>
         private void OnTorrentStarted(object sender, TorrentStartedEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.TorrentStarted != null)
             {
                 this.TorrentStarted(sender, e);
@@ -644,9 +621,6 @@ namespace TorrentClient
         /// <param name="e">The event arguments.</param>
         private void OnTorrentStopped(object sender, TorrentStoppedEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.TorrentStopped != null)
             {
                 this.TorrentStopped(sender, e);

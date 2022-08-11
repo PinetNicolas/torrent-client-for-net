@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Globalization;
+using System.Reflection.PortableExecutable;
 using System.Text;
-using DefensiveProgrammingFramework;
 using TorrentClient.Exceptions;
 using TorrentClient.Extensions;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace TorrentClient.BEncoding
 {
@@ -55,8 +56,6 @@ namespace TorrentClient.BEncoding
         /// <param name="value">The value.</param>
         public BEncodedString(byte[] value)
         {
-            value.CannotBeNull();
-
             this.textBytes = value;
         }
 
@@ -123,9 +122,8 @@ namespace TorrentClient.BEncoding
         /// <returns>True if the arrays are equal, false if they aren't.</returns>
         public static bool ByteMatch(byte[] array1, byte[] array2)
         {
-            array1.CannotBeNull();
-            array2.CannotBeNull();
-
+            if(array1 == null ) throw new ArgumentNullException("array1");
+            if (array2 == null) throw new ArgumentNullException("array2");
             if (array1.Length != array2.Length)
             {
                 return false;
@@ -149,9 +147,8 @@ namespace TorrentClient.BEncoding
         /// </returns>
         public static bool ByteMatch(byte[] array1, int offset1, byte[] array2, int offset2, int count)
         {
-            array1.CannotBeNull();
-            array2.CannotBeNull();
-
+            if (array1 == null) throw new ArgumentNullException("array1");
+            if (array2 == null) throw new ArgumentNullException("array2");
             // If either of the arrays is too small, they're not equal
             if ((array1.Length - offset1) < count ||
                 (array2.Length - offset2) < count)
@@ -178,8 +175,6 @@ namespace TorrentClient.BEncoding
         /// <returns>The BEncoded string.</returns>
         public static BEncodedString ToBEncodedString(string value)
         {
-            value.CannotBeNullOrEmpty();
-
             return new BEncodedString(value);
         }
 
@@ -190,8 +185,6 @@ namespace TorrentClient.BEncoding
         /// <returns>The BEncoded string.</returns>
         public static BEncodedString ToBEncodedString(char[] value)
         {
-            value.CannotBeNullOrEmpty();
-
             return new BEncodedString(value);
         }
 
@@ -202,8 +195,6 @@ namespace TorrentClient.BEncoding
         /// <returns>The BEncoded string.</returns>
         public static BEncodedString ToBEncodedString(byte[] value)
         {
-            value.CannotBeNullOrEmpty();
-
             return new BEncodedString(value);
         }
 
@@ -269,8 +260,8 @@ namespace TorrentClient.BEncoding
         /// </returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
 
             int written;
 
@@ -379,12 +370,6 @@ namespace TorrentClient.BEncoding
         /// <returns>The number of written bytes.</returns>.
         public int Write(byte[] destination, int destinationOffset, byte[] source, int sourceOffset, int count)
         {
-            destination.CannotBeNullOrEmpty();
-            destinationOffset.MustBeGreaterThanOrEqualTo(0);
-            source.CannotBeNull();
-            sourceOffset.MustBeGreaterThanOrEqualTo(0);
-            count.MustBeGreaterThanOrEqualTo(0);
-
             Buffer.BlockCopy(source, sourceOffset, destination, destinationOffset, count);
 
             return count;
@@ -399,9 +384,9 @@ namespace TorrentClient.BEncoding
         /// <returns>The number of written bytes.</returns>.
         public int Write(byte[] buffer, int offset, byte[] value)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            value.CannotBeNull();
+            if (value == null) throw new ArgumentNullException("value");
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
 
             return this.Write(buffer, offset, value, 0, value.Length);
         }
@@ -415,8 +400,8 @@ namespace TorrentClient.BEncoding
         /// <returns>The number of written bytes.</returns>.
         public int Write(byte[] buffer, int offset, byte value)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
 
             buffer[offset] = value;
 
@@ -432,9 +417,9 @@ namespace TorrentClient.BEncoding
         /// <returns>The number of characters written.</returns>
         public int WriteAscii(byte[] buffer, int offset, string text)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            text.CannotBeNullOrEmpty();
+            if (string.IsNullOrEmpty(text)) throw new ArgumentNullException("text");
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
 
             for (int i = 0; i < text.Length; i++)
             {
@@ -454,8 +439,7 @@ namespace TorrentClient.BEncoding
         /// <param name="reader">The StreamReader containing the BEncodedString</param>
         internal override void DecodeInternal(RawReader reader)
         {
-            reader.CannotBeNull();
-
+            if (reader == null) throw new ArgumentNullException("reader");
             int letterCount;
             string length = string.Empty;
 

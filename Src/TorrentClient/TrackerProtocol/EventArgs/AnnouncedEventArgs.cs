@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.TrackerProtocol
@@ -22,11 +21,6 @@ namespace TorrentClient.TrackerProtocol
         /// <param name="peers">The peer endpoints.</param>
         public AnnouncedEventArgs(TimeSpan interval, int leecherCount, int seederCount, IEnumerable<IPEndPoint> peers)
         {
-            interval.MustBeGreaterThan(TimeSpan.Zero);
-            leecherCount.MustBeGreaterThanOrEqualTo(0);
-            seederCount.MustBeGreaterThanOrEqualTo(0);
-            peers.CannotContainOnlyNull();
-
             this.Interval = interval;
             this.LeecherCount = leecherCount;
             this.SeederCount = seederCount;

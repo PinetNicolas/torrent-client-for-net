@@ -1,5 +1,4 @@
 ﻿using System;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol
@@ -17,8 +16,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="errorMessage">The error message.</param>
         public CommunicationErrorEventArgs(string errorMessage)
         {
-            errorMessage.CannotBeNullOrEmpty();
-
             this.ErrorMessage = errorMessage;
         }
 

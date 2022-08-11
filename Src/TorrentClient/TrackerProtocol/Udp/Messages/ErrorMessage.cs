@@ -1,5 +1,5 @@
-﻿using System.Text;
-using DefensiveProgrammingFramework;
+﻿using System;
+using System.Text;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
 using TorrentClient.TrackerProtocol.Udp.Messages.Messages;
@@ -35,8 +35,6 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         public ErrorMessage(int transactionId, string errorMessage)
             : base(TrackingAction.Error, transactionId)
         {
-            errorMessage.CannotBeNullOrEmpty();
-
             this.ErrorText = errorMessage;
         }
 
@@ -79,38 +77,39 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
-        /// <param name="message">The message.</param>
         /// <returns>
-        /// True if decoding was successful; false otherwise.
+        /// The message decode or null if problem
         /// </returns>
-        public static bool TryDecode(byte[] buffer, int offset, out ErrorMessage message)
+        public static ErrorMessage TryDecode(byte[] buffer, int offset)
         {
             int action;
             int transactionId;
             string errorMessage;
 
-            message = null;
+            ErrorMessage message = null;
 
             if (buffer != null &&
                 buffer.Length >= offset + ActionLength + TransactionIdLength &&
                 offset >= 0)
             {
-                action = Message.ReadInt(buffer, ref offset);
-                transactionId = Message.ReadInt(buffer, ref offset);
+                action = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                transactionId = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
 
                 if (action == (int)TrackingAction.Error &&
                     transactionId >= 0)
                 {
-                    errorMessage = Message.ReadString(buffer, ref offset, buffer.Length - offset);
+                    errorMessage = Message.ReadString(buffer, offset, buffer.Length - offset);
 
-                    if (errorMessage.IsNotNullOrEmpty())
+                    if (!string.IsNullOrEmpty(errorMessage))
                     {
                         message = new ErrorMessage(transactionId, errorMessage);
                     }
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -121,15 +120,16 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// <returns>The number of bytes written.</returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, (int)this.Action);
-            Message.Write(buffer, ref written, this.TransactionId);
-            Message.Write(buffer, ref written, this.ErrorText);
+            written += Message.Write(buffer, written, (int)this.Action);
+            written += Message.Write(buffer, written, this.TransactionId);
+            written += Message.Write(buffer, written, this.ErrorText);
 
             return written - offset;
         }

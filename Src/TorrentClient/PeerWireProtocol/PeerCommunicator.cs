@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using DefensiveProgrammingFramework;
 using TorrentClient.Exceptions;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
@@ -50,9 +49,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="tcp">The TCP.</param>
         public PeerCommunicator(ThrottlingManager throttlingManager, TcpClient tcp)
         {
-            throttlingManager.CannotBeNull();
-            tcp.CannotBeNull();
-
             this.PieceData = null;
 
             this.tm = throttlingManager;
@@ -172,8 +168,7 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="messages">The messages.</param>
         public void Send(IEnumerable<PeerMessage> messages)
         {
-            messages.CannotBeNullOrEmpty();
-
+            if (messages == null) throw new ArgumentNullException("messages");
             byte[] data = null;
             int offset = 0;
 
@@ -191,7 +186,7 @@ namespace TorrentClient.PeerWireProtocol
                     {
                         data = new byte[messages.Sum(x => x.Length)];
 
-                        foreach (var message in messages)
+                        foreach (PeerMessage message in messages)
                         {
                             Buffer.BlockCopy(message.Encode(), 0, data, offset, message.Length);
 
@@ -235,9 +230,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="e">The event arguments.</param>
         private void OnCommunicationError(object sender, CommunicationErrorEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.CommunicationError != null)
             {
                 this.CommunicationError(sender, e);
@@ -251,9 +243,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="e">The event arguments.</param>
         private void OnMessageReceived(object sender, PeerMessgeReceivedEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.MessageReceived != null)
             {
                 this.MessageReceived(sender, e);
@@ -271,7 +260,6 @@ namespace TorrentClient.PeerWireProtocol
             int offset = data.OffsetStart;
             PeerMessage message;
             PieceMessage pieceMessage;
-            bool isIncomplete;
 
             lock (this.locker)
             {
@@ -289,7 +277,8 @@ namespace TorrentClient.PeerWireProtocol
                             // walk through the array and try to decode messages
                             while (offset <= data.OffsetEnd)
                             {
-                                if (PieceMessage.TryDecode(data.Buffer, ref offset, data.OffsetEnd, out pieceMessage, out isIncomplete, this.PieceData))
+                                pieceMessage = PieceMessage.TryDecode(data.Buffer, offset, data.OffsetEnd);
+                                if (!pieceMessage.IsIncomplete)
                                 {
                                     // successfully decoded message
                                     this.OnMessageReceived(this, new PeerMessgeReceivedEventArgs((PeerMessage)pieceMessage));
@@ -297,23 +286,29 @@ namespace TorrentClient.PeerWireProtocol
                                     // remember where we left off
                                     data.OffsetStart = offset;
                                 }
-                                else if (PeerMessage.TryDecode(data.Buffer, ref offset, data.OffsetEnd, out message, out isIncomplete))
-                                {
-                                    // successfully decoded message
-                                    this.OnMessageReceived(this, new PeerMessgeReceivedEventArgs(message));
-
-                                    // remember where we left off
-                                    data.OffsetStart = offset;
-                                }
-                                else if (isIncomplete)
-                                {
-                                    // message of variable length is present but incomplete -> stop advancing
-                                    break;
-                                }
                                 else
                                 {
-                                    // move to next byte
-                                    offset++;
+                                    message = PeerMessage.TryDecodeMessage(data.Buffer, offset, data.OffsetEnd);
+
+                                    if (!message.IsIncomplete)
+                                    {
+                                        // successfully decoded message
+                                        this.OnMessageReceived(this, new PeerMessgeReceivedEventArgs(message));
+
+                                        // remember where we left off
+                                        data.OffsetStart = offset;
+                                    }
+
+                                    else if (message.IsIncomplete)
+                                    {
+                                        // message of variable length is present but incomplete -> stop advancing
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        // move to next byte
+                                        offset++;
+                                    }
                                 }
                             }
 

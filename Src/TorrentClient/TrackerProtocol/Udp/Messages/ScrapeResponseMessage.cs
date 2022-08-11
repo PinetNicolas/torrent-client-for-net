@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
 using TorrentClient.TrackerProtocol.Udp.Messages.Messages;
@@ -59,8 +59,6 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         public ScrapeResponseMessage(int transactionId, IEnumerable<ScrapeDetails> scrapes)
             : base(TrackingAction.Scrape, transactionId)
         {
-            scrapes.CannotBeNull();
-
             this.Scrapes = scrapes;
         }
 
@@ -103,11 +101,10 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
-        /// <param name="message">The message.</param>
         /// <returns>
-        /// True if decoding was successful; false otherwise.
+        /// The message decode or null if problem
         /// </returns>
-        public static bool TryDecode(byte[] buffer, int offset, out ScrapeResponseMessage message)
+        public static ScrapeResponseMessage TryDecode(byte[] buffer, int offset)
         {
             int action;
             int transactionId;
@@ -116,23 +113,28 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
             int leechers;
             List<ScrapeDetails> scrapeInfo = new List<ScrapeDetails>();
 
-            message = null;
+            ScrapeResponseMessage message = null;
 
             if (buffer != null &&
                 buffer.Length >= offset + ActionLength + TransactionIdLength &&
                 offset >= 0)
             {
-                action = Message.ReadInt(buffer, ref offset);
-                transactionId = Message.ReadInt(buffer, ref offset);
+                action = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                transactionId = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
 
                 if (action == (int)TrackingAction.Scrape &&
                     transactionId >= 0)
                 {
                     while (offset <= buffer.Length - SeedersLength - CompletedLength - LeechersLength)
                     {
-                        seeds = Message.ReadInt(buffer, ref offset);
-                        completed = Message.ReadInt(buffer, ref offset);
-                        leechers = Message.ReadInt(buffer, ref offset);
+                        seeds = Message.ReadInt(buffer, offset);
+                        offset += Message.IntLength;
+                        completed = Message.ReadInt(buffer, offset);
+                        offset += Message.IntLength;
+                        leechers = Message.ReadInt(buffer, offset);
+                        offset += Message.IntLength;
 
                         scrapeInfo.Add(new ScrapeDetails(seeds, leechers, completed));
                     }
@@ -141,7 +143,7 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -152,20 +154,21 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// <returns>The number of bytes written.</returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, (int)this.Action);
-            Message.Write(buffer, ref written, this.TransactionId);
+            written += Message.Write(buffer, written, (int)this.Action);
+            written += Message.Write(buffer, written, this.TransactionId);
 
             foreach (var scrape in this.Scrapes)
             {
-                Message.Write(buffer, ref written, scrape.SeedersCount);
-                Message.Write(buffer, ref written, scrape.CompleteCount);
-                Message.Write(buffer, ref written, scrape.LeechesCount);
+                written += Message.Write(buffer, written, scrape.SeedersCount);
+                written += Message.Write(buffer, written, scrape.CompleteCount);
+                written += Message.Write(buffer, written, scrape.LeechesCount);
             }
 
             return written - offset;

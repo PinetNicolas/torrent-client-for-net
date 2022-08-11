@@ -1,5 +1,4 @@
 ﻿using System;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.TrackerProtocol
@@ -18,9 +17,6 @@ namespace TorrentClient.TrackerProtocol
         /// <param name="failureReason">The failure reason.</param>
         public TrackingFailedEventArgs(Uri trackingUri, string failureReason)
         {
-            trackingUri.CannotBeNull();
-            failureReason.CannotBeNullOrEmpty();
-
             this.TrackerUri = trackingUri;
             this.FailureReason = failureReason;
         }

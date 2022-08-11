@@ -4,7 +4,6 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Web;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
 using TorrentClient.TrackerProtocol.Udp.Messages.Messages;
@@ -31,17 +30,6 @@ namespace TorrentClient.TrackerProtocol.Http.Messages
         /// <param name="trackingEvent">The tracking event.</param>
         public AnnounceMessage(string infohash, string peerId, int port, long bytesUploaded, long bytesDownloaded, long bytesLeft, int peersWantedCount, TrackingEvent trackingEvent)
         {
-            infohash.CannotBeNullOrEmpty();
-            infohash.Length.MustBeEqualTo(40);
-            peerId.CannotBeNullOrEmpty();
-            peerId.Length.MustBeGreaterThanOrEqualTo(20);
-            port.MustBeGreaterThanOrEqualTo(IPEndPoint.MinPort);
-            port.MustBeLessThanOrEqualTo(IPEndPoint.MaxPort);
-            bytesUploaded.MustBeGreaterThanOrEqualTo(0);
-            bytesDownloaded.MustBeGreaterThanOrEqualTo(0);
-            bytesLeft.MustBeGreaterThanOrEqualTo(0);
-            peersWantedCount.MustBeGreaterThanOrEqualTo(0);
-
             this.BytesDownloaded = bytesDownloaded;
             this.BytesUploaded = bytesUploaded;
             this.BytesLeft = bytesLeft;

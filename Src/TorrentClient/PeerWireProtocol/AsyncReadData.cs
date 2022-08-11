@@ -1,5 +1,4 @@
-﻿using DefensiveProgrammingFramework;
-using TorrentClient.Extensions;
+﻿using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol
 {
@@ -16,8 +15,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="bufferLength">Length of the buffer.</param>
         public AsyncReadData(int bufferLength)
         {
-            bufferLength.MustBeGreaterThan(0);
-
             this.Buffer = new byte[bufferLength];
             this.OffsetStart = 0;
             this.OffsetEnd = 0;

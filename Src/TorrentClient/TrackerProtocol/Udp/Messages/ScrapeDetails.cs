@@ -1,5 +1,4 @@
-﻿using DefensiveProgrammingFramework;
-using TorrentClient.Extensions;
+﻿using TorrentClient.Extensions;
 
 namespace TorrentClient.TrackerProtocol.Udp.Messages
 {
@@ -18,10 +17,6 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// <param name="completeCount">The complete count.</param>
         public ScrapeDetails(int seedersCount, int leechesCount, int completeCount)
         {
-            seedersCount.MustBeGreaterThanOrEqualTo(0);
-            leechesCount.MustBeGreaterThanOrEqualTo(0);
-            completeCount.MustBeGreaterThanOrEqualTo(0);
-
             this.CompleteCount = completeCount;
             this.LeechesCount = leechesCount;
             this.SeedersCount = seedersCount;

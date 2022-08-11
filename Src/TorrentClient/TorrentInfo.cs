@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
-using DefensiveProgrammingFramework;
 using TorrentClient.BEncoding;
 using TorrentClient.Exceptions;
 using TorrentClient.Extensions;
@@ -51,15 +50,6 @@ namespace TorrentClient
         /// <param name="files">The files.</param>
         private TorrentInfo(BEncodedDictionary dictionary, string infoHash, long pieceLength, IEnumerable<string> piecesHashValues, bool isPrivate, IEnumerable<Uri> announceList, DateTime? creationDate, string comment, string createdBy, Encoding encoding, IEnumerable<TorrentFileInfo> files)
         {
-            dictionary.CannotBeNull();
-            infoHash.CannotBeNullOrEmpty();
-            infoHash.Length.MustBeEqualTo(40);
-            pieceLength.MustBeGreaterThan(0);
-            piecesHashValues.CannotBeNullOrEmpty();
-            announceList.CannotBeNullOrEmpty();
-            encoding.CannotBeNull();
-            files.CannotBeNullOrEmpty();
-
             this.dictionary = dictionary;
             this.InfoHash = infoHash;
             this.PieceLength = pieceLength;
@@ -261,8 +251,6 @@ namespace TorrentClient
         /// <returns>True if torrent was loaded successfully, false otherwise.</returns>
         public static bool TryLoad(byte[] data, out TorrentInfo torrentInfo)
         {
-            data.CannotBeNullOrEmpty();
-
             BEncodedValue value;
             BEncodedDictionary general;
             BEncodedDictionary info;
@@ -528,9 +516,6 @@ namespace TorrentClient
         /// </returns>
         public static bool TryLoad(string torrentInfoFilePath, out TorrentInfo torrentInfo)
         {
-            torrentInfoFilePath.MustBeValidFilePath();
-            torrentInfoFilePath.MustFileExist();
-
             return TryLoad(File.ReadAllBytes(torrentInfoFilePath), out torrentInfo);
         }
 
@@ -550,9 +535,6 @@ namespace TorrentClient
         /// <returns>The block count.</returns>
         public int GetBlockCount(int pieceIndex)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            pieceIndex.MustBeLessThan(this.PiecesCount);
-
             return (int)Math.Ceiling((decimal)this.GetPieceLength(pieceIndex) / (decimal)this.BlockLength);
         }
 
@@ -566,11 +548,6 @@ namespace TorrentClient
         /// </returns>
         public int GetBlockLength(int pieceIndex, int blockIndex)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            pieceIndex.MustBeLessThan(this.PiecesCount);
-            blockIndex.MustBeGreaterThanOrEqualTo(0);
-            blockIndex.MustBeLessThan(this.GetBlockCount(pieceIndex));
-
             long pieceLength;
             long blockCount;
 
@@ -597,8 +574,6 @@ namespace TorrentClient
         /// <returns>The file end piece index.</returns>
         public int GetEndPieceIndex(string filePath)
         {
-            filePath.CannotBeNullOrEmpty();
-
             TorrentFileInfo info;
             int pieceStart = 0;
             int pieceEnd;
@@ -627,9 +602,6 @@ namespace TorrentClient
         /// <returns>The file information.</returns>
         public TorrentFileInfo GetFile(int pieceIndex)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            pieceIndex.MustBeLessThanOrEqualTo(this.PiecesCount);
-
             TorrentFileInfo info;
             int pieceStart = 0;
             int pieceEnd;
@@ -663,9 +635,6 @@ namespace TorrentClient
         /// </returns>
         public long GetPieceLength(int pieceIndex)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            pieceIndex.MustBeLessThan(this.PiecesCount);
-
             if (pieceIndex == this.PiecesCount - 1)
             {
                 if (this.Length % this.PieceLength != 0)
@@ -685,8 +654,6 @@ namespace TorrentClient
         /// <returns>The file start piece index.</returns>
         public int GetStartPieceIndex(string filePath)
         {
-            filePath.CannotBeNullOrEmpty();
-
             TorrentFileInfo info;
             int pieceStart = 0;
             int pieceEnd;
@@ -714,8 +681,6 @@ namespace TorrentClient
         /// <param name="torrentInfoFilePath">The torrent information file path.</param>
         public void Save(string torrentInfoFilePath)
         {
-            torrentInfoFilePath.MustBeValidFilePath();
-
             if (File.Exists(torrentInfoFilePath))
             {
                 File.Delete(torrentInfoFilePath);

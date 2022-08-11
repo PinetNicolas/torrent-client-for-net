@@ -1,5 +1,4 @@
-﻿using DefensiveProgrammingFramework;
-using TorrentClient.Extensions;
+﻿using TorrentClient.Extensions;
 
 namespace TorrentClient
 {
@@ -18,10 +17,6 @@ namespace TorrentClient
         /// <param name="length">The length.</param>
         public TorrentFileInfo(string filePath, string md5hash, long length)
         {
-            filePath.MustBeValidFilePath();
-            md5hash.IsNotNull().Then(() => md5hash.Length.MustBeEqualTo(32));
-            length.MustBeGreaterThan(0);
-
             this.FilePath = filePath;
             this.Md5Hash = md5hash;
             this.Length = length;

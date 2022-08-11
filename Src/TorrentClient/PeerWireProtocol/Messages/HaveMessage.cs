@@ -1,5 +1,6 @@
-﻿using System.Text;
-using DefensiveProgrammingFramework;
+﻿using System;
+using System.Globalization;
+using System.Text;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol.Messages
@@ -55,8 +56,6 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// <param name="pieceIndex">Index of the piece.</param>
         public HaveMessage(int pieceIndex)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-
             this.pieceIndex = pieceIndex;
         }
 
@@ -113,19 +112,16 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// <param name="buffer">The buffer.</param>
         /// <param name="offsetFrom">The offset.</param>
         /// <param name="offsetTo">The offset to.</param>
-        /// <param name="message">The message.</param>
-        /// <param name="isIncomplete">if set to <c>true</c> the message is incomplete.</param>
         /// <returns>
         /// True if decoding was successful; false otherwise.
         /// </returns>
-        public static bool TryDecode(byte[] buffer, ref int offsetFrom, int offsetTo, out HaveMessage message, out bool isIncomplete)
+        public static HaveMessage TryDecode(byte[] buffer, int offsetFrom, int offsetTo)
         {
             int messageLength;
             byte messageId;
             int payload;
 
-            message = null;
-            isIncomplete = false;
+            HaveMessage message = new HaveMessage();
 
             if (buffer != null &&
                 buffer.Length >= offsetFrom + MessageLengthLength + MessageIdLength + PayloadLength &&
@@ -133,9 +129,12 @@ namespace TorrentClient.PeerWireProtocol.Messages
                 offsetTo >= offsetFrom &&
                 offsetTo <= buffer.Length)
             {
-                messageLength = Message.ReadInt(buffer, ref offsetFrom);
-                messageId = Message.ReadByte(buffer, ref offsetFrom);
-                payload = Message.ReadInt(buffer, ref offsetFrom);
+                messageLength = Message.ReadInt(buffer, offsetFrom);
+                offsetFrom += Message.IntLength;
+                messageId = Message.ReadByte(buffer, offsetFrom);
+                offsetFrom++;
+                payload = Message.ReadInt(buffer, offsetFrom);
+                offsetFrom += Message.IntLength;
 
                 if (messageLength == MessageLength &&
                     messageId == MessageId &&
@@ -147,12 +146,12 @@ namespace TorrentClient.PeerWireProtocol.Messages
                     }
                     else
                     {
-                        isIncomplete = true;
+                        message.IsIncomplete = true;
                     }
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -165,15 +164,16 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// </returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, MessageLength);
-            Message.Write(buffer, ref written, MessageId);
-            Message.Write(buffer, ref written, this.pieceIndex);
+            written += Message.Write(buffer, written, MessageLength);
+            written += Message.Write(buffer, written, MessageId);
+            written += Message.Write(buffer, written, this.pieceIndex);
 
             return this.CheckWritten(written - offset);
         }
@@ -222,7 +222,7 @@ namespace TorrentClient.PeerWireProtocol.Messages
 
             sb = new StringBuilder();
             sb.Append("HaveMessage: ");
-            sb.Append($"Index = {this.pieceIndex}");
+            sb.AppendFormat(CultureInfo.InvariantCulture, "Index = {0}", this.pieceIndex);
 
             return sb.ToString();
         }

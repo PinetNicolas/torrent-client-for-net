@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol;
 
@@ -27,16 +26,6 @@ namespace TorrentClient
         /// <param name="seederCount">The seeder count.</param>
         public TorrentProgressInfo(string torrentInfoHash, TimeSpan duration, decimal completedPercentage, long downloaded, decimal downloadSpeed, long uploaded, decimal uploadSpeed, int leecherCount, int seederCount)
         {
-            torrentInfoHash.CannotBeNullOrEmpty();
-            duration.MustBeGreaterThanOrEqualTo(TimeSpan.Zero);
-            completedPercentage.MustBeGreaterThanOrEqualTo(0);
-            downloaded.MustBeGreaterThanOrEqualTo(0);
-            downloadSpeed.MustBeGreaterThanOrEqualTo(0);
-            uploaded.MustBeGreaterThanOrEqualTo(0);
-            uploadSpeed.MustBeGreaterThanOrEqualTo(0);
-            leecherCount.MustBeGreaterThanOrEqualTo(0);
-            seederCount.MustBeGreaterThanOrEqualTo(0);
-
             this.TorrentInfoHash = torrentInfoHash;
             this.Duration = duration;
             this.CompletedPercentage = completedPercentage;

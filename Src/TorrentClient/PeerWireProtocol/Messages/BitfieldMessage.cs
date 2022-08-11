@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol.Messages
@@ -54,10 +53,11 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// <param name="bitField">The bit field.</param>
         public BitFieldMessage(bool[] bitField)
         {
-            bitField.CannotBeNull();
-
-            this.payloadLength = (int)Math.Ceiling((decimal)bitField.Length / (decimal)8);
-            this.messageLength = MessageIdLength + this.payloadLength;
+            if (bitField != null)
+            {
+                this.payloadLength = (int)Math.Ceiling((decimal)bitField.Length / (decimal)8);
+                this.messageLength = MessageIdLength + this.payloadLength;
+            }
 
             this.BitField = bitField;
         }
@@ -69,8 +69,7 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// <param name="missingPieces">The missing pieces.</param>
         public BitFieldMessage(long pieceCount, IEnumerable<int> missingPieces)
         {
-            pieceCount.MustBeGreaterThan(0);
-            missingPieces.CannotBeNull();
+            if (missingPieces == null) throw new ArgumentNullException("missingPieces");
 
             this.BitField = new bool[pieceCount];
 
@@ -136,14 +135,13 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// <returns>
         /// True if decoding was successful; false otherwise.
         /// </returns>
-        public static bool TryDecode(byte[] buffer, ref int offsetFrom, int offsetTo, out BitFieldMessage message, out bool isIncomplete)
+        public static BitFieldMessage TryDecode(byte[] buffer, int offsetFrom, int offsetTo)
         {
             int messageLength;
             byte messageId;
             byte[] payload;
 
-            message = null;
-            isIncomplete = false;
+            BitFieldMessage message = new BitFieldMessage(null);
 
             if (buffer != null &&
                 buffer.Length > offsetFrom + MessageLengthLength + MessageIdLength &&
@@ -152,17 +150,18 @@ namespace TorrentClient.PeerWireProtocol.Messages
                 offsetTo >= offsetFrom &&
                 offsetTo <= buffer.Length)
             {
-                messageLength = Message.ReadInt(buffer, ref offsetFrom);
-                messageId = Message.ReadByte(buffer, ref offsetFrom);
-
+                messageLength = Message.ReadInt(buffer, offsetFrom);
+                offsetFrom += Message.IntLength;
+                messageId = Message.ReadByte(buffer, offsetFrom);
+                offsetFrom++;
                 if (messageLength > 0 &&
                     messageId == MessageId)
                 {
                     if (offsetFrom + messageLength - MessageIdLength <= offsetTo)
                     {
-                        payload = Message.ReadBytes(buffer, ref offsetFrom, messageLength - MessageIdLength);
-
-                        if (payload.IsNotNullOrEmpty() &&
+                        payload = Message.ReadBytes(buffer, offsetFrom, messageLength - MessageIdLength);
+                        offsetFrom += messageLength - MessageIdLength;
+                        if (payload != null && payload.Length > 0 &&
                             payload.Length == messageLength - MessageIdLength)
                         {
                             message = new BitFieldMessage(new BitArray(payload).Cast<bool>().ToArray());
@@ -170,12 +169,12 @@ namespace TorrentClient.PeerWireProtocol.Messages
                     }
                     else
                     {
-                        isIncomplete = true;
+                        message.IsIncomplete = true;
                     }
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -191,9 +190,9 @@ namespace TorrentClient.PeerWireProtocol.Messages
 
             new BitArray(this.BitField).CopyTo(byteField, 0);
 
-            Message.Write(buffer, ref written, this.messageLength);
-            Message.Write(buffer, ref written, MessageId);
-            Message.Write(buffer, ref written, byteField);
+            written += Message.Write(buffer, written, this.messageLength);
+            written += Message.Write(buffer, written, MessageId);
+            written += Message.Write(buffer, written, byteField);
 
             return this.CheckWritten(written - offset);
         }

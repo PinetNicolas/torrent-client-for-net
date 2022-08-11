@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
 using TorrentClient.TrackerProtocol.Udp.Messages.Messages;
@@ -47,9 +47,6 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         public ScrapeMessage(long connectionId, int transactionId, IEnumerable<string> infoHashes)
             : base(TrackingAction.Scrape, transactionId)
         {
-            connectionId.MustBeGreaterThanOrEqualTo(0);
-            infoHashes.CannotBeNull();
-
             this.ConnectionId = connectionId;
             this.InfoHashes = infoHashes;
         }
@@ -105,26 +102,28 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
-        /// <param name="message">The message.</param>
         /// <returns>
-        /// True if decoding was successful; false otherwise.
+        /// The message decode or null if problem
         /// </returns>
-        public static bool TryDecode(byte[] buffer, int offset, out ScrapeMessage message)
+        public static ScrapeMessage TryDecode(byte[] buffer, int offset)
         {
             long connectionId;
             int action;
             int transactionId;
             List<string> infoHashes = new List<string>();
 
-            message = null;
+            ScrapeMessage message = null;
 
             if (buffer != null &&
                 buffer.Length >= offset + ConnectionIdLength + ActionLength + TransactionIdLength &&
                 offset >= 0)
             {
-                connectionId = Message.ReadLong(buffer, ref offset);
-                action = Message.ReadInt(buffer, ref offset);
-                transactionId = Message.ReadInt(buffer, ref offset);
+                connectionId = Message.ReadLong(buffer, offset);
+                offset += Message.LongLength;
+                action = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                transactionId = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
 
                 if (connectionId >= 0 &&
                     action == (int)TrackingAction.Scrape &&
@@ -132,14 +131,15 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
                 {
                     while (offset <= buffer.Length - InfoHashLength)
                     {
-                        infoHashes.Add(Message.ReadBytes(buffer, ref offset, InfoHashLength).ToHexaDecimalString());
+                        infoHashes.Add(Message.ReadBytes(buffer, offset, InfoHashLength).ToHexaDecimalString());
+                        offset += InfoHashLength;
                     }
 
                     message = new ScrapeMessage(connectionId, transactionId, infoHashes);
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -150,19 +150,20 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// <returns>The number of bytes written.</returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, this.ConnectionId);
-            Message.Write(buffer, ref written, (int)this.Action);
-            Message.Write(buffer, ref written, this.TransactionId);
+            written += Message.Write(buffer, written, this.ConnectionId);
+            written += Message.Write(buffer, written, (int)this.Action);
+            written += Message.Write(buffer, written, this.TransactionId);
 
             foreach (string infoHash in this.InfoHashes)
             {
-                Message.Write(buffer, ref written, infoHash.ToByteArray());
+                written += Message.Write(buffer, written, infoHash.ToByteArray());
             }
 
             return written - offset;

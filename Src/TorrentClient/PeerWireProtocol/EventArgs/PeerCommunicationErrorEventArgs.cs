@@ -1,5 +1,4 @@
 ﻿using System;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol
@@ -18,8 +17,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="isFatal">if set to <c>true</c> the error is fatal.</param>
         public PeerCommunicationErrorEventArgs(string errorMessage, bool isFatal)
         {
-            errorMessage.CannotBeNullOrEmpty();
-
             this.ErrorMessage = errorMessage;
             this.IsFatal = isFatal;
         }

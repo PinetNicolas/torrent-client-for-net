@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
 using TorrentClient.TrackerProtocol.Udp.Messages.Messages;
@@ -66,11 +65,6 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         public AnnounceResponseMessage(int transactionId, TimeSpan interval, int leecherCount, int seederCount, IEnumerable<IPEndPoint> peers)
             : base(TrackingAction.Announce, transactionId)
         {
-            interval.MustBeGreaterThan(TimeSpan.Zero);
-            leecherCount.MustBeGreaterThanOrEqualTo(0);
-            seederCount.MustBeGreaterThanOrEqualTo(0);
-            peers.CannotBeNull();
-
             this.Interval = interval;
             this.LeecherCount = leecherCount;
             this.SeederCount = seederCount;
@@ -152,11 +146,10 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
-        /// <param name="message">The message.</param>
         /// <returns>
-        /// True if decoding was successful; false otherwise.
+        /// The message decode or null if problem
         /// </returns>
-        public static bool TryDecode(byte[] buffer, int offset, out AnnounceResponseMessage message)
+        public static AnnounceResponseMessage TryDecode(byte[] buffer, int offset)
         {
             int action;
             int transactionId;
@@ -166,17 +159,22 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
             IPEndPoint endpoint;
             IDictionary<string, IPEndPoint> peers = new Dictionary<string, IPEndPoint>();
 
-            message = null;
+            AnnounceResponseMessage message = null;
 
             if (buffer != null &&
                 buffer.Length >= offset + ActionLength + TransactionIdLength + IntervalLength + LeechersLength + SeedersLength &&
                 offset >= 0)
             {
-                action = Message.ReadInt(buffer, ref offset);
-                transactionId = Message.ReadInt(buffer, ref offset);
-                interval = Message.ReadInt(buffer, ref offset);
-                leechers = Message.ReadInt(buffer, ref offset);
-                seeders = Message.ReadInt(buffer, ref offset);
+                action = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                transactionId = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                interval = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                leechers = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                seeders = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
 
                 if (action == (int)TrackingAction.Announce &&
                     transactionId >= 0 &&
@@ -186,7 +184,8 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
                 {
                     while (offset <= buffer.Length - IpAddressLength - PortLength)
                     {
-                        endpoint = Message.ReadEndpoint(buffer, ref offset);
+                        endpoint = Message.ReadEndpoint(buffer, offset);
+                        offset += Message.IntLength + Message.ShortLength;
 
                         if (!peers.ContainsKey(endpoint.Address.ToString()))
                         {
@@ -198,7 +197,7 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -209,21 +208,22 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// <returns>The number of bytes written.</returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, (int)this.Action);
-            Message.Write(buffer, ref written, this.TransactionId);
-            Message.Write(buffer, ref written, (int)this.Interval.TotalSeconds);
-            Message.Write(buffer, ref written, this.LeecherCount);
-            Message.Write(buffer, ref written, this.SeederCount);
+            written += Message.Write(buffer, written, (int)this.Action);
+            written += Message.Write(buffer, written, this.TransactionId);
+            written += Message.Write(buffer, written, (int)this.Interval.TotalSeconds);
+            written += Message.Write(buffer, written, this.LeecherCount);
+            written += Message.Write(buffer, written, this.SeederCount);
 
             foreach (IPEndPoint peerEndpoint in this.Peers)
             {
-                Message.Write(buffer, ref written, peerEndpoint);
+                written += Message.Write(buffer, written, peerEndpoint);
             }
 
             return written - offset;

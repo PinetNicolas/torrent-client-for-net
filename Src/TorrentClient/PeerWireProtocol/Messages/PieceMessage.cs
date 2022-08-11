@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol.Messages
@@ -54,11 +53,6 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// <param name="data">The block data.</param>
         public PieceMessage(int pieceIndex, int blockOffset, int blockDataLength, byte[] data)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            blockOffset.MustBeGreaterThanOrEqualTo(0);
-            blockDataLength.MustBeGreaterThan(0);
-            data.CannotBeNullOrEmpty();
-
             this.PieceIndex = pieceIndex;
             this.BlockOffset = blockOffset;
             this.BlockDataLength = blockDataLength;
@@ -158,7 +152,7 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// <returns>
         /// True if decoding was successful; false otherwise.
         /// </returns>
-        public static bool TryDecode(byte[] buffer, ref int offsetFrom, int offsetTo, out PieceMessage message, out bool isIncomplete, byte[] destination = null)
+        public static PieceMessage TryDecode(byte[] buffer, int offsetFrom, int offsetTo, byte[] destination = null)
         {
             int messageLength;
             byte messageId;
@@ -168,8 +162,7 @@ namespace TorrentClient.PeerWireProtocol.Messages
             int destinationOffset = 0;
             int offsetFrom2 = offsetFrom;
 
-            message = null;
-            isIncomplete = false;
+            PieceMessage message = new PieceMessage();
 
             if (buffer != null &&
                 buffer.Length > offsetFrom2 + MessageLengthLength + MessageIdLength + PieiceIndexLength + BlockOffsetLength &&
@@ -178,10 +171,14 @@ namespace TorrentClient.PeerWireProtocol.Messages
                 offsetTo >= offsetFrom2 &&
                 offsetTo <= buffer.Length)
             {
-                messageLength = Message.ReadInt(buffer, ref offsetFrom2);
-                messageId = Message.ReadByte(buffer, ref offsetFrom2);
-                pieceIndex = Message.ReadInt(buffer, ref offsetFrom2);
-                blockOffset = Message.ReadInt(buffer, ref offsetFrom2);
+                messageLength = Message.ReadInt(buffer, offsetFrom2);
+                offsetFrom2 += Message.IntLength;
+                messageId = Message.ReadByte(buffer, offsetFrom2);
+                offsetFrom2++;
+                pieceIndex = Message.ReadInt(buffer, offsetFrom2);
+                offsetFrom2 += Message.IntLength;
+                blockOffset = Message.ReadInt(buffer, offsetFrom2);
+                offsetFrom2 += Message.IntLength;
                 blockDataLength = messageLength - MessageIdLength - PieiceIndexLength - BlockOffsetLength;
 
                 if (messageLength > MessageIdLength + PieiceIndexLength + BlockOffsetLength &&
@@ -202,19 +199,19 @@ namespace TorrentClient.PeerWireProtocol.Messages
                             destinationOffset = blockOffset;
                         }
 
-                        Message.Copy(buffer, offsetFrom2, destination, ref destinationOffset, blockDataLength);
+                        Message.Copy(buffer, offsetFrom2, destination, destinationOffset, blockDataLength);
 
                         message = new PieceMessage(pieceIndex, blockOffset, blockDataLength, destination);
                         offsetFrom = offsetFrom2 + blockDataLength;
                     }
                     else
                     {
-                        isIncomplete = true;
+                        message.IsIncomplete = true;
                     }
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -227,17 +224,18 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// </returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, MessageIdLength + PieiceIndexLength + BlockOffsetLength + this.Data.Length);
-            Message.Write(buffer, ref written, MessageId);
-            Message.Write(buffer, ref written, this.PieceIndex);
-            Message.Write(buffer, ref written, this.BlockOffset);
-            Message.Write(buffer, ref written, this.Data);
+            written += Message.Write(buffer, written, MessageIdLength + PieiceIndexLength + BlockOffsetLength + this.Data.Length);
+            written += Message.Write(buffer, written, MessageId);
+            written += Message.Write(buffer, written, this.PieceIndex);
+            written += Message.Write(buffer, written, this.BlockOffset);
+            written += Message.Write(buffer, written, this.Data);
 
             return this.CheckWritten(written - offset);
         }

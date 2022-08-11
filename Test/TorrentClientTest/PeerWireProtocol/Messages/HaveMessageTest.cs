@@ -18,17 +18,17 @@ namespace TorrentClient.Test.PeerWireProtocol.Messages
         [TestMethod]
         public void HaveMessage_TryDecode()
         {
-            HaveMessage message;
             int offset = 0;
             bool isIncomplete;
             byte[] data = "0000000504000000AA".ToByteArray();
 
-            if (HaveMessage.TryDecode(data, ref offset, data.Length, out message, out isIncomplete))
+            HaveMessage message = HaveMessage.TryDecode(data, offset, data.Length);
+            if (message != null)
             {
                 Assert.AreEqual(9, message.Length);
                 Assert.AreEqual(170, message.PieceIndex);
-                Assert.AreEqual(false, isIncomplete);
-                Assert.AreEqual(data.Length, offset);
+                Assert.AreEqual(false, message.IsIncomplete);
+                Assert.AreEqual(data.Length, message.Length);
                 CollectionAssert.AreEqual(data, message.Encode());
             }
             else

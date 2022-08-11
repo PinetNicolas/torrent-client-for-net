@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol
@@ -69,14 +68,7 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="bitField">The bit field.</param>
         public PieceManager(string torrentInfoHash, long torrentLength, IEnumerable<string> pieceHashes, long pieceLength, int blockLength, PieceStatus[] bitField)
         {
-            torrentInfoHash.CannotBeNullOrEmpty();
-            pieceHashes.CannotBeNullOrEmpty();
-            pieceLength.MustBeGreaterThan(0);
-            ((long)blockLength).MustBeLessThanOrEqualTo(pieceLength);
-            (pieceLength % blockLength).MustBeEqualTo(0);
-            bitField.CannotBeNull();
-            bitField.Length.MustBeEqualTo(pieceHashes.Count());
-
+            
             this.PieceLength = pieceLength;
             this.BlockLength = blockLength;
             this.BlockCount = (int)(pieceLength / blockLength);
@@ -87,17 +79,19 @@ namespace TorrentClient.PeerWireProtocol
             this.pieceHashes = pieceHashes;
 
             this.BitField = bitField;
-
-            for (int i = 0; i < this.BitField.Length; i++)
+            if (bitField != null)
             {
-                if (this.BitField[i] != PieceStatus.Ignore)
+                for (int i = 0; i < this.BitField.Length; i++)
                 {
-                    this.piecesCount++;
-                }
+                    if (this.BitField[i] != PieceStatus.Ignore)
+                    {
+                        this.piecesCount++;
+                    }
 
-                if (bitField[i] == PieceStatus.Present)
-                {
-                    this.presentPiecesCount++;
+                    if (bitField[i] == PieceStatus.Present)
+                    {
+                        this.presentPiecesCount++;
+                    }
                 }
             }
 
@@ -299,10 +293,10 @@ namespace TorrentClient.PeerWireProtocol
         /// </returns>
         public Piece CheckOut(int pieceIndex, byte[] pieceData = null, bool[] bitField = null)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            pieceIndex.MustBeLessThanOrEqualTo(this.PieceCount);
-            pieceData.IsNotNull().Then(() => pieceData.LongLength.MustBeEqualTo(this.GetPieceLength(pieceIndex)));
-            bitField.IsNotNull().Then(() => bitField.Length.MustBeEqualTo(this.GetBlockCount(pieceIndex)));
+            if (pieceData != null && pieceData.LongLength != this.GetPieceLength(pieceIndex))
+                throw new ArgumentException("pieceData must have {} length", "pieceData");
+            if (bitField != null && bitField.Length != this.GetBlockCount(pieceIndex))
+                throw new ArgumentException("bitField must have {} length", "bitField");
 
             this.CheckIfObjectIsDisposed();
 
@@ -371,9 +365,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <returns>The block count.</returns>
         public int GetBlockCount(int pieceIndex)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            pieceIndex.MustBeLessThan(this.PieceCount);
-
             this.CheckIfObjectIsDisposed();
 
             long pieceLength = this.GetPieceLength(pieceIndex);
@@ -397,11 +388,6 @@ namespace TorrentClient.PeerWireProtocol
         /// </returns>
         public int GetBlockLength(int pieceIndex, int blockIndex)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            pieceIndex.MustBeLessThan(this.PieceCount);
-            blockIndex.MustBeGreaterThanOrEqualTo(0);
-            blockIndex.MustBeLessThan(this.BlockCount);
-
             long pieceLength;
             long blockCount;
 
@@ -430,9 +416,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <returns>The piece.</returns>
         public Piece GetPiece(int pieceIndex)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            pieceIndex.MustBeLessThan(this.PieceCount);
-
             this.CheckIfObjectIsDisposed();
 
             PieceRequestedEventArgs e = new PieceRequestedEventArgs(pieceIndex);
@@ -458,9 +441,6 @@ namespace TorrentClient.PeerWireProtocol
         /// </returns>
         public long GetPieceLength(int pieceIndex)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            pieceIndex.MustBeLessThan(this.PieceCount);
-
             this.CheckIfObjectIsDisposed();
 
             if (pieceIndex == this.PieceCount - 1)
@@ -497,9 +477,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="e">The event arguments.</param>
         private void OnPieceCompleted(object sender, PieceCompletedEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.PieceCompleted != null)
             {
                 this.PieceCompleted(sender, e);
@@ -513,9 +490,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="e">The event arguments.</param>
         private void OnPieceRequested(object sender, PieceRequestedEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.PieceRequested != null)
             {
                 this.PieceRequested(sender, e);

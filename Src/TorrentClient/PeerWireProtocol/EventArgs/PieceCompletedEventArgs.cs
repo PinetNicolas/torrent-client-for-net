@@ -1,5 +1,4 @@
 ﻿using System;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol
@@ -18,9 +17,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="pieceData">The piece data.</param>
         public PieceCompletedEventArgs(int pieceIndex, byte[] pieceData)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            pieceData.CannotBeNullOrEmpty();
-
             this.PieceIndex = pieceIndex;
             this.PieceData = pieceData;
         }

@@ -8,7 +8,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Web;
-using DefensiveProgrammingFramework;
 
 namespace TorrentClient.Extensions
 {
@@ -67,8 +66,8 @@ namespace TorrentClient.Extensions
         /// <param name="bytes">The payload bytes.</param>
         public static void ExecuteUdpRequest(this IPEndPoint endpoint, byte[] bytes)
         {
-            endpoint.CannotBeNull();
-            bytes.CannotBeNullOrEmpty();
+            if(endpoint == null) throw new ArgumentNullException(nameof(endpoint));
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
             int bufferSize = 4096;
             TimeSpan sendTimeout = TimeSpan.FromSeconds(5);
@@ -91,15 +90,6 @@ namespace TorrentClient.Extensions
                 {
                     // stop reading
                     count = udp.EndSend(asyncResult);
-
-                    if (count == bytes.Length)
-                    {
-                        // ok
-                    }
-                }
-                else
-                {
-                    // timeout
                 }
 
                 udp.Close();
@@ -129,11 +119,6 @@ namespace TorrentClient.Extensions
             T responseContent = default(T);
             int maxRedirects = 30;
             string location = "Location";
-
-            uri.CannotBeNull();
-            getDataFunc.CannotBeNull();
-            requestContentType.CannotBeNullOrEmpty();
-            redirectCount.MustBeGreaterThanOrEqualTo(0);
 
             // make request
             request = HttpWebRequest.Create(uri) as HttpWebRequest;
@@ -165,7 +150,7 @@ namespace TorrentClient.Extensions
                     if (redirectCount <= maxRedirects)
                     {
                         if (response.Headers.AllKeys.Contains(location) &&
-                            response.Headers[location].IsNotNullOrEmpty())
+                            !string.IsNullOrEmpty(response.Headers[location]))
                         {
                             if (Uri.TryCreate(response.Headers[location], UriKind.Absolute, out uri))
                             {

@@ -1,5 +1,4 @@
 ﻿using System;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
 
@@ -18,8 +17,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="message">The message.</param>
         public PeerMessgeReceivedEventArgs(PeerMessage message)
         {
-            message.CannotBeNull();
-
             this.Message = message;
         }
 

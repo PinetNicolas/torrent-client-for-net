@@ -18,16 +18,16 @@ namespace TorrentClient.Test.PeerWireProtocol.Messages
         [TestMethod]
         public void ChokeMessage_TryDecode()
         {
-            ChokeMessage message;
             int offset = 0;
             bool isIncomplete;
             byte[] data = "0000000100".ToByteArray();
 
-            if (ChokeMessage.TryDecode(data, ref offset, data.Length, out message, out isIncomplete))
+            ChokeMessage message = ChokeMessage.TryDecode(data, offset, data.Length);
+            if (message !=null)
             {
                 Assert.AreEqual(5, message.Length);
-                Assert.AreEqual(false, isIncomplete);
-                Assert.AreEqual(data.Length, offset);
+                Assert.AreEqual(false, message.IsIncomplete);
+                Assert.AreEqual(data.Length, message.Length);
                 CollectionAssert.AreEqual(data, message.Encode());
             }
             else

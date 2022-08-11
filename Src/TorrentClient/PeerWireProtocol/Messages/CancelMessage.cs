@@ -1,5 +1,6 @@
-﻿using System.Text;
-using DefensiveProgrammingFramework;
+﻿using System;
+using System.Globalization;
+using System.Text;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol.Messages
@@ -52,10 +53,6 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// <param name="blockLength">Length of the block.</param>
         public CancelMessage(int pieceIndex, int blockOffset, int blockLength)
         {
-            pieceIndex.MustBeGreaterThanOrEqualTo(0);
-            blockOffset.MustBeGreaterThanOrEqualTo(0);
-            blockLength.MustBeGreaterThanOrEqualTo(0);
-
             this.PieceIndex = pieceIndex;
             this.BlockOffset = blockOffset;
             this.BlockLength = blockLength;
@@ -141,7 +138,7 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// <returns>
         /// True if decoding was successful; false otherwise.
         /// </returns>
-        public static bool TryDecode(byte[] buffer, ref int offsetFrom, int offsetTo, out CancelMessage message, out bool isIncomplete)
+        public static CancelMessage TryDecode(byte[] buffer, int offsetFrom, int offsetTo)
         {
             int messageLength;
             byte messageId;
@@ -149,8 +146,7 @@ namespace TorrentClient.PeerWireProtocol.Messages
             int blockOffset;
             int blockLength;
 
-            message = null;
-            isIncomplete = false;
+            CancelMessage message = new CancelMessage();
 
             if (buffer != null &&
                 buffer.Length >= offsetFrom + MessageLengthLength + MessageIdLength + PayloadLength &&
@@ -158,11 +154,16 @@ namespace TorrentClient.PeerWireProtocol.Messages
                 offsetTo >= offsetFrom &&
                 offsetTo <= buffer.Length)
             {
-                messageLength = Message.ReadInt(buffer, ref offsetFrom);
-                messageId = Message.ReadByte(buffer, ref offsetFrom);
-                pieceIndex = Message.ReadInt(buffer, ref offsetFrom);
-                blockOffset = Message.ReadInt(buffer, ref offsetFrom);
-                blockLength = Message.ReadInt(buffer, ref offsetFrom);
+                messageLength = Message.ReadInt(buffer, offsetFrom);
+                offsetFrom += Message.IntLength;
+                messageId = Message.ReadByte(buffer, offsetFrom);
+                offsetFrom++;
+                pieceIndex = Message.ReadInt(buffer, offsetFrom);
+                offsetFrom += Message.IntLength;
+                blockOffset = Message.ReadInt(buffer, offsetFrom);
+                offsetFrom += Message.IntLength;
+                blockLength = Message.ReadInt(buffer, offsetFrom);
+                offsetFrom += Message.IntLength;
 
                 if (messageLength == MessageLength &&
                     messageId == MessageId &&
@@ -176,12 +177,12 @@ namespace TorrentClient.PeerWireProtocol.Messages
                     }
                     else
                     {
-                        isIncomplete = true;
+                        message.IsIncomplete = true;
                     }
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -194,17 +195,18 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// </returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, MessageLength);
-            Message.Write(buffer, ref written, MessageId);
-            Message.Write(buffer, ref written, this.PieceIndex);
-            Message.Write(buffer, ref written, this.BlockOffset);
-            Message.Write(buffer, ref written, this.BlockLength);
+            written += Message.Write(buffer, written, MessageLength);
+            written += Message.Write(buffer, written, MessageId);
+            written += Message.Write(buffer, written, this.PieceIndex);
+            written += Message.Write(buffer, written, this.BlockOffset);
+            written += Message.Write(buffer, written, this.BlockLength);
 
             return this.CheckWritten(written - offset);
         }
@@ -250,9 +252,9 @@ namespace TorrentClient.PeerWireProtocol.Messages
 
             sb = new System.Text.StringBuilder();
             sb.Append("CancelMessage: ");
-            sb.Append($"PieceIndex = {this.PieceIndex}, ");
-            sb.Append($"BlockOffset = {this.BlockOffset}, ");
-            sb.Append($"BlockLength = {this.BlockLength}");
+            sb.AppendFormat(CultureInfo.InvariantCulture, "PieceIndex = {0}", this.PieceIndex);
+            sb.AppendFormat(CultureInfo.InvariantCulture, "BlockOffset = {0}", this.BlockOffset);
+            sb.AppendFormat(CultureInfo.InvariantCulture, "BlockLength = {0}", this.BlockLength);
 
             return sb.ToString();
         }

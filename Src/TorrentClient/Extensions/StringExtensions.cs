@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
-using DefensiveProgrammingFramework;
 
 namespace TorrentClient.Extensions
 {
@@ -45,8 +44,7 @@ namespace TorrentClient.Extensions
         /// <returns>The byte array.</returns>
         public static byte[] ToByteArray(this string value)
         {
-            value.CannotBeNull();
-
+            if (value == null) throw new ArgumentNullException("value");
             return Enumerable.Range(0, value.Length / 2).Select(x => Convert.ToByte(value.Substring(x * 2, 2), 16)).ToArray();
         }
 
@@ -144,11 +142,13 @@ namespace TorrentClient.Extensions
         /// </returns>
         public static string ToCapitalWordCase(this string str, params char[] separators)
         {
-            str.CannotBeNull();
-            separators.CannotBeNull();
-
             List<string> words = new List<string>();
 
+            if (string.IsNullOrEmpty(str)) return string.Empty;
+            if (separators == null)
+            {
+                separators = new char[] { ' ' };
+            }
             if (separators.Length == 0)
             {
                 separators = new char[] { ' ' };
@@ -182,8 +182,6 @@ namespace TorrentClient.Extensions
         /// </returns>
         public static string ToHexaDecimalString(this byte[] value)
         {
-            value.CannotBeNull();
-
             return BitConverter.ToString(value).Replace("-", string.Empty, StringComparison.InvariantCulture);
         }
 
@@ -194,6 +192,7 @@ namespace TorrentClient.Extensions
         /// <returns>String in sentence case.</returns>
         public static string ToSentenceCase(this string str)
         {
+            if(string.IsNullOrEmpty(str)) return string.Empty;
             return str.Substring(0, 1).ToUpper(CultureInfo.CurrentCulture) + (str.Length > 1 ? str.Substring(1) : string.Empty);
         }
 
@@ -207,9 +206,11 @@ namespace TorrentClient.Extensions
         /// </returns>
         public static string ToSnakeCase(this string str, params char[] separators)
         {
-            str.CannotBeNull();
-            separators.CannotBeNull();
-
+            if (string.IsNullOrEmpty(str)) return string.Empty;
+            if (separators == null)
+            {
+                separators = new char[] { ' ' };
+            }
             if (separators.Length == 0)
             {
                 separators = new char[] { ' ' };
@@ -274,8 +275,7 @@ namespace TorrentClient.Extensions
         /// <returns>String in title case.</returns>
         public static string ToTitleCase(string str, CultureInfo culture)
         {
-            str.CannotBeNull();
-
+            if (string.IsNullOrEmpty(str)) return string.Empty;
             if (culture != null)
             {
                 return culture.TextInfo.ToTitleCase(str.ToLower(CultureInfo.CurrentCulture));

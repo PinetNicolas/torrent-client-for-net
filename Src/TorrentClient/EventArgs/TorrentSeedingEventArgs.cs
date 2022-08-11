@@ -1,5 +1,4 @@
 ﻿using System;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient
@@ -17,8 +16,6 @@ namespace TorrentClient
         /// <param name="torrentInfo">The torrent information.</param>
         public TorrentSeedingEventArgs(TorrentInfo torrentInfo)
         {
-            torrentInfo.CannotBeNull();
-
             this.TorrentInfo = torrentInfo;
         }
 

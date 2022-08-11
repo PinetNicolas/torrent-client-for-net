@@ -1,7 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
-using DefensiveProgrammingFramework;
 using TorrentClient.Exceptions;
 using TorrentClient.Extensions;
 
@@ -46,8 +46,6 @@ namespace TorrentClient.BEncoding
         /// <param name="list">The list.</param>
         public BEncodedList(IEnumerable<BEncodedValue> list)
         {
-            list.CannotContainOnlyNull();
-
             this.list = new List<BEncodedValue>(list);
         }
 
@@ -57,8 +55,6 @@ namespace TorrentClient.BEncoding
         /// <param name="value">The value.</param>
         public BEncodedList(List<BEncodedValue> value)
         {
-            value.CannotBeNull();
-
             this.list = value;
         }
 
@@ -103,8 +99,6 @@ namespace TorrentClient.BEncoding
         {
             get
             {
-                index.MustBeGreaterThanOrEqualTo(0);
-
                 return this.list[index];
             }
 
@@ -124,8 +118,6 @@ namespace TorrentClient.BEncoding
         /// <param name="item">The object to add to the <see cref="System.Collections.Generic.ICollection`1" />.</param>
         public void Add(BEncodedValue item)
         {
-            item.CannotBeNull();
-
             this.list.Add(item);
         }
 
@@ -135,8 +127,6 @@ namespace TorrentClient.BEncoding
         /// <param name="collection">The collection.</param>
         public void AddRange(IEnumerable<BEncodedValue> collection)
         {
-            collection.CannotContainOnlyNull();
-
             this.list.AddRange(collection);
         }
 
@@ -157,8 +147,6 @@ namespace TorrentClient.BEncoding
         /// </returns>
         public bool Contains(BEncodedValue item)
         {
-            item.CannotBeNull();
-
             return this.list.Contains(item);
         }
 
@@ -169,9 +157,6 @@ namespace TorrentClient.BEncoding
         /// <param name="arrayIndex">Index of the array.</param>
         public void CopyTo(BEncodedValue[] array, int arrayIndex)
         {
-            array.CannotBeNull();
-            arrayIndex.MustBeGreaterThanOrEqualTo(0);
-
             this.list.CopyTo(array, arrayIndex);
         }
 
@@ -183,9 +168,9 @@ namespace TorrentClient.BEncoding
         /// <returns>The number of bytes encoded.</returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            
             int written = 0;
 
             buffer[offset] = (byte)'l'; // lists start with l
@@ -282,8 +267,6 @@ namespace TorrentClient.BEncoding
         /// </returns>
         public int IndexOf(BEncodedValue item)
         {
-            item.CannotBeNull();
-
             return this.list.IndexOf(item);
         }
 
@@ -294,9 +277,6 @@ namespace TorrentClient.BEncoding
         /// <param name="item">The object to insert into the <see cref="System.Collections.Generic.IList`1" />.</param>
         public void Insert(int index, BEncodedValue item)
         {
-            index.MustBeGreaterThanOrEqualTo(0);
-            item.CannotBeNull();
-
             this.list.Insert(index, item);
         }
 
@@ -329,8 +309,6 @@ namespace TorrentClient.BEncoding
         /// </returns>
         public bool Remove(BEncodedValue item)
         {
-            item.CannotBeNull();
-
             return this.list.Remove(item);
         }
 
@@ -364,7 +342,7 @@ namespace TorrentClient.BEncoding
         /// <param name="reader">The reader.</param>
         internal override void DecodeInternal(RawReader reader)
         {
-            reader.CannotBeNull();
+            if (reader == null) throw new ArgumentNullException("reader");
 
             if (reader.ReadByte() != 'l')
             {

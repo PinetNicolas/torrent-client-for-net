@@ -18,16 +18,15 @@ namespace TorrentClient.Test.PeerWireProtocol.Messages
         [TestMethod]
         public void UninterestedMessage_TryDecode()
         {
-            UninterestedMessage message;
             int offset = 0;
-            bool isIncomplete;
             byte[] data = "0000000103".ToByteArray();
 
-            if (UninterestedMessage.TryDecode(data, ref offset, data.Length, out message, out isIncomplete))
+            UninterestedMessage message = UninterestedMessage.TryDecode(data, offset, data.Length);
+            if (message != null)
             {
                 Assert.AreEqual(5, message.Length);
-                Assert.AreEqual(false, isIncomplete);
-                Assert.AreEqual(data.Length, offset);
+                Assert.AreEqual(false, message.IsIncomplete);
+                Assert.AreEqual(data.Length, message.Length);
                 CollectionAssert.AreEqual(data, message.Encode());
             }
             else

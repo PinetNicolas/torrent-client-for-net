@@ -1,5 +1,4 @@
 ﻿using System;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol.Messages
@@ -48,21 +47,20 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
-        /// <param name="message">The message.</param>
         /// <returns>
         /// True if decoding was successful; false otherwise.
         /// </returns>
-        public static bool TryDecode(byte[] buffer, ref int offset, out KeepAliveMessage message)
+        public static KeepAliveMessage TryDecode(byte[] buffer, int offset)
         {
             int messageLength;
 
-            message = null;
+            KeepAliveMessage message = new KeepAliveMessage();
 
             if (buffer != null &&
                 buffer.Length >= offset + MessageLengthLength &&
                 offset >= 0)
             {
-                messageLength = Message.ReadInt(buffer, ref offset);
+                messageLength = Message.ReadInt(buffer, offset);
 
                 if (messageLength == MessageLength)
                 {
@@ -70,7 +68,7 @@ namespace TorrentClient.PeerWireProtocol.Messages
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -83,13 +81,14 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// </returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, MessageLength);
+            written += Message.Write(buffer, written, MessageLength);
 
             return this.CheckWritten(written - offset);
         }

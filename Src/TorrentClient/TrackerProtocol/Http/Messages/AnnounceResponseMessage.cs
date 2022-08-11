@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
-using DefensiveProgrammingFramework;
 using TorrentClient.BEncoding;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
@@ -33,11 +32,6 @@ namespace TorrentClient.TrackerProtocol.Http.Messages
         /// <param name="peers">The peers.</param>
         private AnnounceResponseMessage(string failureReason, TimeSpan updateInterval, int seedersCount, int leecherCount, IEnumerable<IPEndPoint> peers)
         {
-            updateInterval.CannotBeEqualTo(TimeSpan.Zero);
-            seedersCount.MustBeGreaterThanOrEqualTo(0);
-            leecherCount.MustBeGreaterThanOrEqualTo(0);
-            peers.CannotBeNull();
-
             this.FailureReason = failureReason;
             this.UpdateInterval = updateInterval;
             this.SeederCount = seedersCount;
@@ -155,7 +149,7 @@ namespace TorrentClient.TrackerProtocol.Http.Messages
 
             message = null;
 
-            if (data.IsNotNullOrEmpty())
+            if (data!=null)
             {
                 value = BEncodedValue.Decode(data);
 

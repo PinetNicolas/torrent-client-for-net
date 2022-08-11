@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient
@@ -117,8 +116,6 @@ namespace TorrentClient
 
             set
             {
-                value.MustBeGreaterThan(0);
-
                 this.readLimit = value;
                 this.readDelta = value;
 
@@ -153,8 +150,6 @@ namespace TorrentClient
 
             set
             {
-                value.MustBeGreaterThan(0);
-
                 this.writeLimit = value;
                 this.writeDelta = value;
 
@@ -172,8 +167,6 @@ namespace TorrentClient
         /// <param name="bytesRead">The bytes read count.</param>
         public void Read(long bytesRead)
         {
-            bytesRead.MustBeGreaterThanOrEqualTo(0);
-
             decimal wait;
 
             lock (this.readingLocker)
@@ -211,8 +204,6 @@ namespace TorrentClient
         /// <param name="bytesWritten">The bytes written.</param>
         public void Write(long bytesWritten)
         {
-            bytesWritten.MustBeGreaterThanOrEqualTo(0);
-
             decimal wait;
 
             lock (this.writingLocker)

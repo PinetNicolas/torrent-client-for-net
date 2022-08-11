@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Net;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 using TorrentClient.TrackerProtocol.Udp.Messages.Messages;
 
@@ -32,14 +31,6 @@ namespace TorrentClient.TrackerProtocol
         /// <param name="listeningPort">The listening port.</param>
         public Tracker(Uri trackerUri, string peerId, string torrentInfoHash, int listeningPort)
         {
-            trackerUri.CannotBeNull();
-            torrentInfoHash.CannotBeNullOrEmpty();
-            torrentInfoHash.Length.MustBeEqualTo(40);
-            peerId.CannotBeNullOrEmpty();
-            peerId.Length.MustBeGreaterThanOrEqualTo(20);
-            listeningPort.MustBeGreaterThanOrEqualTo(IPEndPoint.MinPort);
-            listeningPort.MustBeGreaterThanOrEqualTo(IPEndPoint.MinPort);
-
             this.UpdateInterval = TimeSpan.FromMinutes(10);
             this.TrackerUri = trackerUri;
             this.TorrentInfoHash = torrentInfoHash;
@@ -273,11 +264,8 @@ namespace TorrentClient.TrackerProtocol
         /// </summary>
         /// <param name="sender">The sender.</param>
         /// <param name="e">The event arguments.</param>
-        protected void OnAnnounced(object sender, AnnouncedEventArgs e)
+        internal void OnAnnounced(object sender, AnnouncedEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.Announced != null)
             {
                 this.Announced(sender, e);
@@ -289,11 +277,8 @@ namespace TorrentClient.TrackerProtocol
         /// </summary>
         /// <param name="sender">The sender.</param>
         /// <param name="e">The event arguments.</param>
-        protected void OnAnnouncing(object sender, EventArgs e)
+        internal void OnAnnouncing(object sender, EventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.Announcing != null)
             {
                 this.Announcing(sender, e);
@@ -332,9 +317,6 @@ namespace TorrentClient.TrackerProtocol
         /// <param name="e">The event arguments.</param>
         private void OnTrackingFailed(object sender, TrackingFailedEventArgs e)
         {
-            sender.CannotBeNull();
-            e.CannotBeNull();
-
             if (this.TrackingFailed != null)
             {
                 this.TrackingFailed(sender, e);

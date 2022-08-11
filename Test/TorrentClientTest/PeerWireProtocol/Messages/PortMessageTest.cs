@@ -18,17 +18,16 @@ namespace TorrentClient.Test.PeerWireProtocol.Messages
         [TestMethod]
         public void PortMessage_TryDecode()
         {
-            PortMessage message;
             int offset = 0;
-            bool isIncomplete;
             byte[] data = "00000003090FAC".ToByteArray();
 
-            if (PortMessage.TryDecode(data, ref offset, data.Length, out message, out isIncomplete))
+            PortMessage message = PortMessage.TryDecode(data, offset, data.Length);
+            if (message != null)
             {
                 Assert.AreEqual(7, message.Length);
                 Assert.AreEqual(4012, message.Port);
-                Assert.AreEqual(false, isIncomplete);
-                Assert.AreEqual(data.Length, offset);
+                Assert.AreEqual(false, message.IsIncomplete);
+                Assert.AreEqual(data.Length, message.Length);
                 CollectionAssert.AreEqual(data, message.Encode());
             }
             else

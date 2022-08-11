@@ -1,4 +1,5 @@
-﻿using DefensiveProgrammingFramework;
+﻿
+using System;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
 using TorrentClient.TrackerProtocol.Udp.Messages.Messages;
@@ -83,24 +84,26 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// <param name="offset">The offset.</param>
         /// <param name="message">The message.</param>
         /// <returns>
-        /// True if decoding was successful; false otherwise.
+        /// The message decode or null if problem
         /// </returns>
-        public static bool TryDecode(byte[] buffer, int offset, out ConnectResponseMessage message)
+        public static ConnectResponseMessage TryDecode(byte[] buffer, int offset)
         {
             long connectionId;
             int action;
             int transactionId;
 
-            message = null;
+            ConnectResponseMessage message = null;
 
             if (buffer != null &&
                 buffer.Length >= offset + ConnectionIdLength + ActionLength + TransactionIdLength &&
                 offset >= 0)
             {
-                action = Message.ReadInt(buffer, ref offset);
-                transactionId = Message.ReadInt(buffer, ref offset);
-                connectionId = Message.ReadLong(buffer, ref offset);
-
+                action = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                transactionId = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                connectionId = Message.ReadLong(buffer, offset);
+                offset += Message.LongLength;
                 if (action == (int)TrackingAction.Connect &&
                     transactionId >= 0)
                 {
@@ -108,7 +111,7 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -121,15 +124,16 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// </returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, (int)this.Action);
-            Message.Write(buffer, ref written, this.TransactionId);
-            Message.Write(buffer, ref written, this.ConnectionId);
+            written += Message.Write(buffer, written, (int)this.Action);
+            written += Message.Write(buffer, written, this.TransactionId);
+            written += Message.Write(buffer, written, this.ConnectionId);
 
             return this.CheckWritten(written - offset);
         }

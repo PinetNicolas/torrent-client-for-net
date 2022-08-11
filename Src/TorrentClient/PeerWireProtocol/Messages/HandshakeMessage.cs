@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Globalization;
 using System.Text;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol.Messages
@@ -73,16 +73,11 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// The engine does not support extended, but extended was requested</exception>
         public HandshakeMessage(string infoHash, string peerId, string protocolString = ProtocolName, bool supportsFastPeer = false, bool supportsExtendedMessaging = false)
         {
-            infoHash.CannotBeNullOrEmpty();
-            infoHash.Length.MustBeEqualTo(40);
-            peerId.CannotBeNullOrEmpty();
-            peerId.Length.MustBeGreaterThanOrEqualTo(20);
-            protocolString.CannotBeNullOrEmpty();
-
             this.InfoHash = infoHash;
             this.PeerId = peerId;
             this.ProtocolString = protocolString;
-            this.ProtocolStringLength = protocolString.Length;
+            if(!string.IsNullOrEmpty(protocolString))
+                this.ProtocolStringLength = protocolString.Length;
             this.SupportsFastPeer = supportsFastPeer;
             this.SupportsExtendedMessaging = supportsExtendedMessaging;
         }
@@ -198,12 +193,10 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// <param name="buffer">The buffer.</param>
         /// <param name="offsetFrom">The offset.</param>
         /// <param name="offsetTo">The offset to.</param>
-        /// <param name="message">The message.</param>
-        /// <param name="isIncomplete">if set to <c>true</c> the message is incomplete.</param>
         /// <returns>
         /// True if decoding was successful; false otherwise.
         /// </returns>
-        public static bool TryDecode(byte[] buffer, ref int offsetFrom, int offsetTo, out HandshakeMessage message, out bool isIncomplete)
+        public static HandshakeMessage TryDecode(byte[] buffer, int offsetFrom, int offsetTo)
         {
             byte protocolStringLength;
             string protocolString;
@@ -211,9 +204,8 @@ namespace TorrentClient.PeerWireProtocol.Messages
             bool supportsFastPeer;
             string infoHash;
             string peerId;
-
-            message = null;
-            isIncomplete = false;
+            int offsetStart = offsetFrom;
+            HandshakeMessage message = new HandshakeMessage();
 
             if (buffer != null &&
                 buffer.Length > offsetFrom + NameLengthLength + ReservedLength + InfoHashLength + PeerIdLength &&
@@ -221,41 +213,43 @@ namespace TorrentClient.PeerWireProtocol.Messages
                 offsetTo >= offsetFrom &&
                 offsetTo <= buffer.Length)
             {
-                protocolStringLength = Message.ReadByte(buffer, ref offsetFrom); // first byte is length
-
-                if (buffer.Length >= offsetFrom + protocolStringLength + ReservedLength + InfoHashLength + PeerIdLength)
+                protocolStringLength = Message.ReadByte(buffer, offsetStart); // first byte is length
+                offsetStart++;
+                if (buffer.Length >= offsetStart + protocolStringLength + ReservedLength + InfoHashLength + PeerIdLength)
                 {
-                    protocolString = Message.ReadString(buffer, ref offsetFrom, protocolStringLength);
-
+                    protocolString = Message.ReadString(buffer, offsetStart, protocolStringLength);
+                    offsetStart += protocolStringLength;
                     // increment offset first so that the indices are consistent between Encoding and Decoding
-                    offsetFrom += ReservedLength;
+                    offsetStart += ReservedLength;
 
-                    supportsExtendedMessaging = (ExtendedMessagingFlag & buffer[offsetFrom - 3]) == ExtendedMessagingFlag;
-                    supportsFastPeer = (FastPeersFlag & buffer[offsetFrom - 1]) == FastPeersFlag;
+                    supportsExtendedMessaging = (ExtendedMessagingFlag & buffer[offsetStart - 3]) == ExtendedMessagingFlag;
+                    supportsFastPeer = (FastPeersFlag & buffer[offsetStart - 1]) == FastPeersFlag;
 
-                    infoHash = Message.ReadBytes(buffer, ref offsetFrom, 20).ToHexaDecimalString();
-                    peerId = Message.ToPeerId(Message.ReadBytes(buffer, ref offsetFrom, 20));
+                    infoHash = Message.ReadBytes(buffer, offsetStart, 20).ToHexaDecimalString();
+                    offsetStart += 20;
+                    peerId = Message.ToPeerId(Message.ReadBytes(buffer, offsetStart, 20));
+                    offsetStart += 20;
 
                     if (protocolStringLength == 19 &&
                         protocolString == ProtocolName &&
                         infoHash.Length == 40 &&
                         peerId != null &&
                         peerId.Length >= 20 &&
-                        peerId.IsNotNullOrEmpty())
+                        !string.IsNullOrEmpty(peerId))
                     {
-                        if (offsetFrom <= offsetTo)
+                        if (offsetStart <= offsetTo)
                         {
                             message = new HandshakeMessage(infoHash, peerId, protocolString, supportsFastPeer, supportsExtendedMessaging);
                         }
                         else
                         {
-                            isIncomplete = true;
+                            message.IsIncomplete = true;
                         }
                     }
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -268,15 +262,16 @@ namespace TorrentClient.PeerWireProtocol.Messages
         /// </returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, (byte)this.ProtocolString.Length);
-            Message.Write(buffer, ref written, this.ProtocolString);
-            Message.Write(buffer, ref written, ZeroedBits);
+            written += Message.Write(buffer, written, (byte)this.ProtocolString.Length);
+            written += Message.Write(buffer, written, this.ProtocolString);
+            written += Message.Write(buffer, written, ZeroedBits);
 
             if (this.SupportsExtendedMessaging)
             {
@@ -288,8 +283,8 @@ namespace TorrentClient.PeerWireProtocol.Messages
                 buffer[written - 1] |= FastPeersFlag;
             }
 
-            Message.Write(buffer, ref written, this.InfoHash.ToByteArray());
-            Message.Write(buffer, ref written, Message.FromPeerId(this.PeerId));
+            written += Message.Write(buffer, written, this.InfoHash.ToByteArray());
+            written += Message.Write(buffer, written, Message.FromPeerId(this.PeerId));
 
             return this.CheckWritten(written - offset);
         }
@@ -353,10 +348,10 @@ namespace TorrentClient.PeerWireProtocol.Messages
 
             sb = new System.Text.StringBuilder();
             sb.Append("HandshakeMessage: ");
-            sb.Append($"PeerID = {this.PeerId}, ");
-            sb.Append($"InfoHash = {this.InfoHash}, ");
-            sb.Append($"FastPeer = {this.SupportsFastPeer}, ");
-            sb.Append($"ExtendedMessaging = {this.SupportsExtendedMessaging}");
+            sb.AppendFormat(CultureInfo.InvariantCulture,"PeerID = {0}",this.PeerId);
+            sb.AppendFormat(CultureInfo.InvariantCulture, "InfoHash = {0}", this.InfoHash);
+            sb.AppendFormat(CultureInfo.InvariantCulture, "FastPeer = {0}", this.SupportsFastPeer);
+            sb.AppendFormat(CultureInfo.InvariantCulture, "ExtendedMessaging = {0}", this.SupportsExtendedMessaging);
 
             return sb.ToString();
         }

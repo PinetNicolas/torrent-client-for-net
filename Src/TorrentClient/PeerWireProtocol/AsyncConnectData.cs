@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 
 namespace TorrentClient.PeerWireProtocol
@@ -19,9 +18,6 @@ namespace TorrentClient.PeerWireProtocol
         /// <param name="tcp">The TCP.</param>
         public AsyncConnectData(IPEndPoint endpoint, TcpClient tcp)
         {
-            endpoint.CannotBeNull();
-            tcp.CannotBeNull();
-
             this.Endpoint = endpoint;
             this.Tcp = tcp;
         }

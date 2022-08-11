@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Net;
-using DefensiveProgrammingFramework;
 using TorrentClient.Extensions;
 using TorrentClient.PeerWireProtocol.Messages;
 using TorrentClient.TrackerProtocol.Udp.Messages.Messages;
@@ -100,15 +99,6 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         public AnnounceMessage(long connectionId, int transactionId, string infoHash, string peerId, long downloaded, long left, long uploaded, TrackingEvent trackingEvent, uint key, int numberWanted, IPEndPoint endpoint)
             : base(TrackingAction.Announce, transactionId)
         {
-            infoHash.CannotBeNullOrEmpty();
-            infoHash.Length.MustBeEqualTo(40);
-            peerId.CannotBeNullOrEmpty();
-            peerId.Length.MustBeGreaterThanOrEqualTo(20);
-            downloaded.MustBeGreaterThanOrEqualTo(0);
-            left.MustBeGreaterThanOrEqualTo(0);
-            uploaded.MustBeGreaterThanOrEqualTo(0);
-            endpoint.CannotBeNull();
-
             this.ConnectionId = connectionId;
             this.InfoHash = infoHash;
             this.PeerId = peerId;
@@ -268,11 +258,10 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="offset">The offset.</param>
-        /// <param name="message">The message.</param>
         /// <returns>
-        /// True if decoding was successful; false otherwise.
+        /// The message decode or null if problem
         /// </returns>
-        public static bool TryDecode(byte[] buffer, int offset, out AnnounceMessage message)
+        public static AnnounceMessage TryDecode(byte[] buffer, int offset)
         {
             long connectionId;
             long action;
@@ -288,31 +277,44 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
             int numberWanted;
             ushort port;
 
-            message = null;
+            AnnounceMessage message = null;
 
             if (buffer != null &&
                 buffer.Length >= offset + ConnectionIdLength + ActionLength + TransactionIdLength + InfoHashLength + PeerIdLength + DownloadedLength + LeftLength + UploadedLength + TrackingEventLength + IpAddressLength + KeyLength + NumWantLength + PortLength &&
                 offset >= 0)
             {
-                connectionId = Message.ReadLong(buffer, ref offset);
-                action = Message.ReadInt(buffer, ref offset);
-                transactionId = Message.ReadInt(buffer, ref offset);
-                infoHash = Message.ReadBytes(buffer, ref offset, 20).ToHexaDecimalString();
-                peerId = Message.ToPeerId(Message.ReadBytes(buffer, ref offset, 20));
-                downloaded = Message.ReadLong(buffer, ref offset);
-                left = Message.ReadLong(buffer, ref offset);
-                uploaded = Message.ReadLong(buffer, ref offset);
-                trackingEvent = Message.ReadInt(buffer, ref offset);
-                ipaddress = Message.ReadInt(buffer, ref offset);
-                key = (uint)Message.ReadInt(buffer, ref offset);
-                numberWanted = Message.ReadInt(buffer, ref offset);
-                port = (ushort)Message.ReadShort(buffer, ref offset);
+                connectionId = Message.ReadLong(buffer, offset);
+                offset += Message.LongLength;
+                action = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                transactionId = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                infoHash = Message.ReadBytes(buffer, offset, 20).ToHexaDecimalString();
+                offset += 20;
+                peerId = Message.ToPeerId(Message.ReadBytes(buffer, offset, 20));
+                offset += 20;
+                downloaded = Message.ReadLong(buffer, offset);
+                offset += Message.LongLength;
+                left = Message.ReadLong(buffer, offset);
+                offset += Message.LongLength;
+                uploaded = Message.ReadLong(buffer, offset);
+                offset += Message.LongLength;
+                trackingEvent = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                ipaddress = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                key = (uint)Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                numberWanted = Message.ReadInt(buffer, offset);
+                offset += Message.IntLength;
+                port = (ushort)Message.ReadShort(buffer, offset);
+                offset += Message.ShortLength;
 
                 if (connectionId >= 0 &&
                     action == (int)TrackingAction.Announce &&
                     transactionId >= 0 &&
-                    infoHash.IsNotNullOrEmpty() &&
-                    peerId.IsNotNullOrEmpty() &&
+                    infoHash != null && infoHash.Length > 0 &&
+                    !string.IsNullOrEmpty(peerId) &&
                     downloaded >= 0 &&
                     left >= 0 &&
                     uploaded >= 0 &&
@@ -325,7 +327,7 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
                 }
             }
 
-            return message != null;
+            return message;
         }
 
         /// <summary>
@@ -336,25 +338,26 @@ namespace TorrentClient.TrackerProtocol.Udp.Messages
         /// <returns>The number of bytes written.</returns>
         public override int Encode(byte[] buffer, int offset)
         {
-            buffer.CannotBeNullOrEmpty();
-            offset.MustBeGreaterThanOrEqualTo(0);
-            offset.MustBeLessThan(buffer.Length);
+            if (buffer == null)
+                throw new ArgumentNullException("buffer", "buffer can't be null");
+            if (offset < 0 || offset > buffer.Length)
+                throw new ArgumentOutOfRangeException("offset", $"Offset must be between 0 and {buffer.Length}");
 
             int written = offset;
 
-            Message.Write(buffer, ref written, this.ConnectionId);
-            Message.Write(buffer, ref written, (int)this.Action);
-            Message.Write(buffer, ref written, this.TransactionId);
-            Message.Write(buffer, ref written, this.InfoHash.ToByteArray());
-            Message.Write(buffer, ref written, Message.FromPeerId(this.PeerId));
-            Message.Write(buffer, ref written, this.Downloaded);
-            Message.Write(buffer, ref written, this.Left);
-            Message.Write(buffer, ref written, this.Uploaded);
-            Message.Write(buffer, ref written, (int)this.TrackingEvent);
-            Message.Write(buffer, ref written, this.Endpoint.Address == IPAddress.Loopback ? 0 : BitConverter.ToInt32(this.Endpoint.Address.GetAddressBytes(), 0));
-            Message.Write(buffer, ref written, this.Key);
-            Message.Write(buffer, ref written, this.NumberWanted);
-            Message.Write(buffer, ref written, (ushort)this.Endpoint.Port);
+            written += Message.Write(buffer, written, this.ConnectionId);
+            written += Message.Write(buffer, written, (int)this.Action);
+            written += Message.Write(buffer, written, this.TransactionId);
+            written += Message.Write(buffer, written, this.InfoHash.ToByteArray());
+            written += Message.Write(buffer, written, Message.FromPeerId(this.PeerId));
+            written += Message.Write(buffer, written, this.Downloaded);
+            written += Message.Write(buffer, written, this.Left);
+            written += Message.Write(buffer, written, this.Uploaded);
+            written += Message.Write(buffer, written, (int)this.TrackingEvent);
+            written += Message.Write(buffer, written, this.Endpoint.Address == IPAddress.Loopback ? 0 : BitConverter.ToInt32(this.Endpoint.Address.GetAddressBytes(), 0));
+            written += Message.Write(buffer, written, this.Key);
+            written += Message.Write(buffer, written, this.NumberWanted);
+            written += Message.Write(buffer, written, (ushort)this.Endpoint.Port);
 
             return written - offset;
         }
